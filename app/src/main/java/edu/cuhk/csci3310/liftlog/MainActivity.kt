@@ -4,20 +4,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import edu.cuhk.csci3310.liftlog.ui.components.LiftLogBottomBar
-import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTopBar
+import androidx.navigation.navArgument
 import edu.cuhk.csci3310.liftlog.ui.navigation.Screen
 import edu.cuhk.csci3310.liftlog.ui.screens.LogScreen
+import edu.cuhk.csci3310.liftlog.ui.screens.RoutineEditScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.RoutinesScreen
-import edu.cuhk.csci3310.liftlog.ui.screens.SpotterScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.StatsScreen
 import edu.cuhk.csci3310.liftlog.ui.theme.LiftLogTheme
 
@@ -37,20 +38,41 @@ class MainActivity : ComponentActivity() {
 fun LiftLogApp() {
     val navController = rememberNavController()
 
-    Scaffold(
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Stats.route,
         modifier = Modifier.fillMaxSize(),
-        topBar = { LiftLogTopBar(navController) },
-        bottomBar = { LiftLogBottomBar(navController) }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Stats.route,
-            modifier = Modifier.padding(innerPadding)
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None }
+    ) {
+        composable(Screen.Stats.route) { StatsScreen(navController) }
+        composable(Screen.Log.route) { LogScreen(navController) }
+        composable(Screen.Routines.route) { RoutinesScreen(navController) }
+
+        composable(
+            "routine_create",
+            enterTransition = {
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up)
+            },
+            exitTransition = {
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down)
+            }
         ) {
-            composable(Screen.Stats.route) { StatsScreen() }
-            composable(Screen.Routines.route) { RoutinesScreen() }
-            composable(Screen.Spotter.route) { SpotterScreen() }
-            composable(Screen.Log.route) { LogScreen() }
+            RoutineEditScreen(navController)
+        }
+        composable(
+            "routine_edit/{routineId}",
+            arguments = listOf(
+                navArgument("routineId") { type = NavType.LongType },
+            ),
+            enterTransition = {
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+            },
+            exitTransition = {
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+            }
+        ) {
+            RoutineEditScreen(navController)
         }
     }
 }

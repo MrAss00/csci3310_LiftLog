@@ -6,31 +6,29 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import edu.cuhk.csci3310.liftlog.ui.navigation.Screen
 
 @Composable
-fun LiftLogBottomBar(navController: NavController) {
+fun LiftLogBottomBar(navController: NavHostController) {
+    val tabs = listOf(Screen.Stats, Screen.Log, Screen.Routines)
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar {
-        Screen.tabs.forEach { screen ->
+        tabs.forEach { screen ->
             NavigationBarItem(
                 icon = { Icon(imageVector = screen.icon, contentDescription = screen.label) },
                 label = { Text(text = screen.label) },
                 selected = currentRoute == screen.route,
                 onClick = {
                     navController.navigate(screen.route) {
-                        // Pop up to the start destination to avoid building up a large back stack
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
-                        // Avoid multiple copies of the same destination
-                        launchSingleTop = true
-                        // Restore state when re-selecting a previously selected tab
-                        restoreState = true
+                        // pop up to the start destination to avoid building up a large back stack
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true // avoid multiple copies of the same destination
+                        restoreState = true // restore state when re-selecting a previous tab
                     }
                 }
             )

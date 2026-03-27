@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(
@@ -29,14 +28,4 @@ sealed class Screen(
         label = "Routines",
         icon = Icons.Filled.FitnessCenter
     )
-
-    data object Spotter : Screen(
-        route = "spotter",
-        label = "Spotter",
-        icon = Icons.Filled.Timer
-    )
-
-    companion object {
-        val tabs = listOf(Stats, Log, Routines, Spotter)
-    }
 }

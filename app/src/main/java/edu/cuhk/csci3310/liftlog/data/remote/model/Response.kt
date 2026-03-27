@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class ExerciseResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("metadata") val metadata: ExerciseMetadata?,
-    @SerializedName("data") val data: List<ExerciseDto>
+    @SerializedName("data") val data: List<Exercise>
 )
 
 data class ExerciseMetadata(
@@ -14,7 +14,7 @@ data class ExerciseMetadata(
     @SerializedName("currentPage") val currentPage: Int
 )
 
-data class ExerciseDto(
+data class Exercise(
     @SerializedName("exerciseId") val exerciseId: String,
     @SerializedName("name") val name: String,
     @SerializedName("gifUrl") val gifUrl: String,
@@ -27,9 +27,9 @@ data class ExerciseDto(
 
 data class BodyPartsResponse(
     @SerializedName("success") val success: Boolean,
-    @SerializedName("data") val data: List<BodyPartDto>
+    @SerializedName("data") val data: List<BodyPart>
 )
 
-data class BodyPartDto(
+data class BodyPart(
     @SerializedName("name") val name: String
 )

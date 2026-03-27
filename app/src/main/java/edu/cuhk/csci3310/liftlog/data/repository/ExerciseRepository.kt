@@ -1,7 +1,7 @@
 package edu.cuhk.csci3310.liftlog.data.repository
 
 import edu.cuhk.csci3310.liftlog.data.remote.ExdbApi
-import edu.cuhk.csci3310.liftlog.data.remote.model.ExerciseDto
+import edu.cuhk.csci3310.liftlog.data.remote.model.Exercise
 
 class ExerciseRepository(private val api: ExdbApi) {
 
@@ -9,7 +9,7 @@ class ExerciseRepository(private val api: ExdbApi) {
         query: String,
         offset: Int = 0,
         limit: Int = 20
-    ): Result<List<ExerciseDto>> {
+    ): Result<List<Exercise>> {
         return try {
             val response = api.searchExercises(
                 search = query,
@@ -27,7 +27,7 @@ class ExerciseRepository(private val api: ExdbApi) {
         bodyPart: String,
         offset: Int = 0,
         limit: Int = 20
-    ): Result<List<ExerciseDto>> {
+    ): Result<List<Exercise>> {
         return try {
             val response = api.getExercisesByBodyPart(
                 bodyPart = bodyPart,
