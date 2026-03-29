@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,11 +29,20 @@ import edu.cuhk.csci3310.liftlog.ui.viewmodel.StatsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun StatsScreen(navController: NavHostController, viewModel: StatsViewModel = viewModel()) {
-    val monthlyVolume by viewModel.monthlyVolume.collectAsState()
-    val monthlySessions by viewModel.monthlySessions.collectAsState()
-    val monthlyTotalSets by viewModel.monthlyTotalSets.collectAsState()
-    val monthlyProgress by viewModel.monthlyProgress.collectAsState()
+fun StatsScreen(
+    navController: NavHostController,
+    viewModel: StatsViewModel = viewModel()
+) {
+    // ← These lines collect the real values from ViewModel
+    val monthlyVolume by viewModel.monthlyVolume.collectAsState(initial = 20L)
+    val monthlyGoal by viewModel.monthlyGoal.collectAsState(initial = 100000L)
+    val monthlyProgress by viewModel.monthlyProgress.collectAsState(initial = 20f)
+    val monthlySessions by viewModel.monthlySessions.collectAsState(initial = 0)      // ← added
+    val monthlyTotalSets by viewModel.monthlyTotalSets.collectAsState(initial = 0)
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshMonthlyGoal()   // forces re-read from SharedPreferences
+    }
 
     LiftLogTabScaffold(navController, title = "Stats") { innerPadding ->
         LazyColumn(
@@ -41,20 +51,36 @@ fun StatsScreen(navController: NavHostController, viewModel: StatsViewModel = vi
                 .padding(innerPadding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
-        )
-        {
+        ) {
+            // DEBUG TEXT - you should see real numbers here
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.Yellow.copy(alpha = 0.2f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("DEBUG - ViewModel values", style = MaterialTheme.typography.titleMedium)
+                        Text("Monthly Volume = $monthlyVolume kg")
+                        Text("Monthly Goal   = $monthlyGoal kg")
+                        Text("Progress       = ${(monthlyProgress * 100).toInt()}%")
+                    }
+                }
+            }
 
-            item { MonthlyGoalCard(monthlyVolume, monthlyProgress) }
-            item { DailyStatsRow(monthlySessions, monthlyTotalSets) }
+            // Real cards using ViewModel data
+            item { MonthlyGoalCard(monthlyVolume, monthlyGoal, monthlyProgress) }
+
+            item { DailyStatsRow(monthlySessions,monthlyTotalSets) }   // still hardcoded for now
+
             item { TodayGoalCards() }
             item { WeeklyGoalsSection() }
         }
     }
 }
 
-
+// Updated MonthlyGoalCard that shows both current volume and target goal
 @Composable
-private fun MonthlyGoalCard(volume: Long, progress: Float) {
+private fun MonthlyGoalCard(volume: Long, goal: Long, progress: Float) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -73,7 +99,7 @@ private fun MonthlyGoalCard(volume: Long, progress: Float) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "${volume.formatWithCommas()} kg",
+                    text = "${volume.formatWithCommas()} / ${goal.formatWithCommas()} kg",
                     style = MaterialTheme.typography.headlineLarge.copy(fontSize = 36.sp),
                     fontWeight = FontWeight.Bold
                 )

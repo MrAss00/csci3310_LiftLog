@@ -12,7 +12,7 @@ fun LiftLogTabScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
-        topBar = { LiftLogTopBar(title) },
+        topBar = { LiftLogTopBar(title,navController = navController) },
         bottomBar = { LiftLogBottomBar(navController) }
     ) { innerPadding ->
         content(innerPadding)

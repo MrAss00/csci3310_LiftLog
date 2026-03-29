@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(
@@ -27,5 +28,12 @@ sealed class Screen(
         route = "routines",
         label = "Routines",
         icon = Icons.Filled.FitnessCenter
+    )
+
+    object Settings : Screen(
+        route = "settings",
+        label = "Settings",
+        icon = Icons.Default.Settings
+
     )
 }

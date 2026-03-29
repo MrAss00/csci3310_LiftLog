@@ -1,6 +1,7 @@
 package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
@@ -21,6 +22,11 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val database = LiftLogDatabase.getInstance(application)
     private val repository = WorkoutRepository(database.workoutDao())
 
+    private val prefs = application.getSharedPreferences("liftlog_prefs", Context.MODE_PRIVATE)
+
+    private val _monthlyGoal = MutableStateFlow(prefs.getLong("monthly_goal_kg", 100_000L))
+    val monthlyGoal: StateFlow<Long> = _monthlyGoal.asStateFlow()
+
     private val _monthlyVolume = MutableStateFlow(0L)
     val monthlyVolume: StateFlow<Long> = _monthlyVolume.asStateFlow()
 
@@ -30,10 +36,19 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _monthlyTotalSets = MutableStateFlow(0)
     val monthlyTotalSets: StateFlow<Int> = _monthlyTotalSets.asStateFlow()
 
-    private val _monthlyProgress = MutableStateFlow(0f)   // 0.0 - 1.0
+    private val _monthlyProgress = MutableStateFlow(0f)
     val monthlyProgress: StateFlow<Float> = _monthlyProgress.asStateFlow()
 
+    // Public function to refresh goal (called when returning from Settings)
+    fun refreshMonthlyGoal() {
+        _monthlyGoal.value = prefs.getLong("monthly_goal_kg", 100_000L)
+    }
+
     init {
+        // for testing only
+        _monthlyVolume.value = 20L
+
+
         viewModelScope.launch {
             val startOfMonth = LocalDate.now()
                 .withDayOfMonth(1)
@@ -50,8 +65,10 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 _monthlySessions.value = sessions
                 _monthlyTotalSets.value = sets
 
-                // Monthly goal = 100,000 kg (you can change this later)
-                _monthlyProgress.value = (volume.toFloat() / 100_000f).coerceAtMost(1f)
+                val goal = _monthlyGoal.value
+                _monthlyProgress.value = if (goal > 0) {
+                    (volume.toFloat() / goal.toFloat()).coerceAtMost(1f)
+                } else 0f
             }.collect { }
         }
     }
