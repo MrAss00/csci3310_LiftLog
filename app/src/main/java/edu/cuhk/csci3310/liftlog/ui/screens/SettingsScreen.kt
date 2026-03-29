@@ -38,7 +38,7 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.headlineMedium
             )
 
-            // Monthly Goal Input Card
+            //monthlygoal card
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
@@ -71,14 +71,12 @@ fun SettingsScreen(
                 }
             }
 
-            // Current value display
             Text(
                 text = "Current monthly goal: ${monthlyGoal.formatWithCommas()} kg",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary
             )
 
-            // You can add more settings cards here later
         }
     }
 }

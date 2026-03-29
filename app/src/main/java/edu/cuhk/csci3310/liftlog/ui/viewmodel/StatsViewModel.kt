@@ -39,7 +39,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _monthlyProgress = MutableStateFlow(0f)
     val monthlyProgress: StateFlow<Float> = _monthlyProgress.asStateFlow()
 
-    // Public function to refresh goal (called when returning from Settings)
+    //  to refresh goal, called when returning from settings
     fun refreshMonthlyGoal() {
         _monthlyGoal.value = prefs.getLong("monthly_goal_kg", 100_000L)
     }
@@ -48,7 +48,11 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         // for testing only
         _monthlyVolume.value = 20L
 
-
+        val goal = _monthlyGoal.value
+        _monthlyProgress.value = if (goal > 0) {
+            (_monthlyVolume.value/goal.toFloat()).coerceAtMost(1f)   // ← progress based on 20,000 kg
+        } else 0f
+/*
         viewModelScope.launch {
             val startOfMonth = LocalDate.now()
                 .withDayOfMonth(1)
@@ -71,5 +75,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 } else 0f
             }.collect { }
         }
+
+ */
     }
 }

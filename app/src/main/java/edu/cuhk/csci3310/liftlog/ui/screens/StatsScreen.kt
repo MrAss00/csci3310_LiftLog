@@ -52,22 +52,20 @@ fun StatsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // DEBUG TEXT - you should see real numbers here
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.Yellow.copy(alpha = 0.2f))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("DEBUG - ViewModel values", style = MaterialTheme.typography.titleMedium)
-                        Text("Monthly Volume = $monthlyVolume kg")
-                        Text("Monthly Goal   = $monthlyGoal kg")
-                        Text("Progress       = ${(monthlyProgress * 100).toInt()}%")
-                    }
-                }
-            }
+//            item {
+//                Card(
+//                    modifier = Modifier.fillMaxWidth(),
+//                    colors = CardDefaults.cardColors(containerColor = Color.Yellow.copy(alpha = 0.2f))
+//                ) {
+//                    Column(modifier = Modifier.padding(16.dp)) {
+//                        Text("DEBUG - ViewModel values", style = MaterialTheme.typography.titleMedium)
+//                        Text("Monthly Volume = $monthlyVolume kg")
+//                        Text("Monthly Goal   = $monthlyGoal kg")
+//                        Text("Progress       = ${(monthlyProgress * 100).toInt()}%")
+//                    }
+//                }
+//            }
 
-            // Real cards using ViewModel data
             item { MonthlyGoalCard(monthlyVolume, monthlyGoal, monthlyProgress) }
 
             item { DailyStatsRow(monthlySessions,monthlyTotalSets) }   // still hardcoded for now
@@ -78,7 +76,7 @@ fun StatsScreen(
     }
 }
 
-// Updated MonthlyGoalCard that shows both current volume and target goal
+// update monthlygoal
 @Composable
 private fun MonthlyGoalCard(volume: Long, goal: Long, progress: Float) {
     Card(
@@ -225,7 +223,6 @@ private fun WeeklyGoalsSection() {
 
             Spacer(Modifier.height(12.dp))
 
-            // Updated streak row using CircularProgressIndicator
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
