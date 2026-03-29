@@ -1,5 +1,7 @@
 package edu.cuhk.csci3310.liftlog.ui.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,8 +21,19 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import edu.cuhk.csci3310.liftlog.ui.viewmodel.StatsViewModel
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun StatsScreen(navController: NavHostController) {
+fun StatsScreen(navController: NavHostController, viewModel: StatsViewModel = viewModel()) {
+    val monthlyVolume by viewModel.monthlyVolume.collectAsState()
+    val monthlySessions by viewModel.monthlySessions.collectAsState()
+    val monthlyTotalSets by viewModel.monthlyTotalSets.collectAsState()
+    val monthlyProgress by viewModel.monthlyProgress.collectAsState()
+
     LiftLogTabScaffold(navController, title = "Stats") { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -28,48 +41,20 @@ fun StatsScreen(navController: NavHostController) {
                 .padding(innerPadding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item { GreetingHeader() }
-            item { MonthlyGoalCard() }
-            item { DailyStatsRow() }
+        )
+        {
+
+            item { MonthlyGoalCard(monthlyVolume, monthlyProgress) }
+            item { DailyStatsRow(monthlySessions, monthlyTotalSets) }
             item { TodayGoalCards() }
             item { WeeklyGoalsSection() }
         }
     }
 }
 
-@Composable
-private fun GreetingHeader() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Good morning",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Profile",
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
 
 @Composable
-private fun MonthlyGoalCard() {
+private fun MonthlyGoalCard(volume: Long, progress: Float) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -88,7 +73,7 @@ private fun MonthlyGoalCard() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "85,300 kg",
+                    text = "${volume.formatWithCommas()} kg",
                     style = MaterialTheme.typography.headlineLarge.copy(fontSize = 36.sp),
                     fontWeight = FontWeight.Bold
                 )
@@ -96,14 +81,14 @@ private fun MonthlyGoalCard() {
 
             Box(contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
-                    progress = { 0.65f },
+                    progress = { progress },
                     modifier = Modifier.size(80.dp),
                     color = MaterialTheme.colorScheme.primary,
                     strokeWidth = 8.dp,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Text(
-                    text = "65%",
+                    text = "${(progress * 100).toInt()}%",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -113,14 +98,32 @@ private fun MonthlyGoalCard() {
 }
 
 @Composable
-private fun DailyStatsRow() {
+private fun DailyStatsRow(sessions: Int, totalSets: Int) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        StatSmallCard(Icons.Default.FitnessCenter, "15", "Sessions", Color(0xFF4CAF50), Modifier.weight(1f))
-        StatSmallCard(Icons.Default.Repeat, "685", "Total Sets", Color(0xFF2196F3), Modifier.weight(1f))
-        StatSmallCard(Icons.Default.ArrowUpward, "12", "PRs", Color(0xFFFF9800), Modifier.weight(1f))
+        StatSmallCard(
+            icon = Icons.Default.FitnessCenter,
+            value = sessions.toString(),
+            label = "Sessions",
+            color = Color(0xFF4CAF50),
+            modifier = Modifier.weight(1f)
+        )
+        StatSmallCard(
+            icon = Icons.Default.Repeat,
+            value = totalSets.toString(),
+            label = "Total Sets",
+            color = Color(0xFF2196F3),
+            modifier = Modifier.weight(1f)
+        )
+        StatSmallCard(
+            icon = Icons.Default.ArrowUpward,
+            value = "12",
+            label = "PRs",
+            color = Color(0xFFFF9800),
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -165,7 +168,6 @@ private fun TodayGoalCards() {
         }
     }
 }
-
 @Composable
 private fun WeeklyGoalsSection() {
     Card(
@@ -178,45 +180,81 @@ private fun WeeklyGoalsSection() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Weekly goals", style = MaterialTheme.typography.titleMedium)
-                Text("Check reports →", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = "Weekly goals",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Check reports →",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
             Spacer(Modifier.height(8.dp))
-            Text("Your activity for last 7 days", style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = "Your activity for last 7 days",
+                style = MaterialTheme.typography.bodySmall
+            )
 
             Spacer(Modifier.height(12.dp))
 
+            // Updated streak row using CircularProgressIndicator
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 val days = listOf("S", "M", "T", "W", "T", "F", "S")
-                val completed = listOf(true, true, true, true, true, false, false)
+                val completed = listOf(true, true, true, true, true, false, false) // 5/7
 
                 days.forEachIndexed { index, day ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(if (completed[index]) Color(0xFF4CAF50) else MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(
+                                progress = { if (completed[index]) 1f else 0f },
+                                modifier = Modifier.size(36.dp),
+                                color = if (completed[index]) Color(0xFF4CAF50) else MaterialTheme.colorScheme.surfaceVariant,
+                                strokeWidth = 4.dp,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+
                             if (completed[index]) {
-                                Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             } else {
-                                Text(day, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                                Text(
+                                    text = " ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
+
                         Spacer(Modifier.height(4.dp))
-                        Text(day, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = day,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
 
             Spacer(Modifier.height(8.dp))
-            Text("5/7 Completed", style = MaterialTheme.typography.titleMedium, color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
+            Text(
+                text = "5/7 Completed",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFF4CAF50),
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
+
+
+private fun Long.formatWithCommas(): String = "%,d".format(this)

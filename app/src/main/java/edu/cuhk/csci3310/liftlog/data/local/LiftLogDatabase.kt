@@ -8,14 +8,18 @@ import edu.cuhk.csci3310.liftlog.data.local.dao.RoutineDao
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineWorkoutEntity
 
+import edu.cuhk.csci3310.liftlog.data.local.dao.WorkoutDao
+import edu.cuhk.csci3310.liftlog.data.local.entity.WorkoutEntity
+
 @Database(
-    entities = [RoutineEntity::class, RoutineWorkoutEntity::class],
-    version = 1,
+    entities = [RoutineEntity::class, RoutineWorkoutEntity::class, WorkoutEntity::class],
+    version = 3,
     exportSchema = false
 )
 abstract class LiftLogDatabase : RoomDatabase() {
 
     abstract fun routineDao(): RoutineDao
+    abstract fun workoutDao(): WorkoutDao
 
     companion object {
         @Volatile
@@ -27,7 +31,8 @@ abstract class LiftLogDatabase : RoomDatabase() {
                     context.applicationContext,
                     LiftLogDatabase::class.java,
                     "liftlog_database"
-                ).build()
+                )
+                    .build()
                 INSTANCE = instance
                 instance
             }
