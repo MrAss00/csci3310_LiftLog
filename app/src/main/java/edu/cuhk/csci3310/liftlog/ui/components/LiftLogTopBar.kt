@@ -11,16 +11,16 @@ import androidx.compose.runtime.Composable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LiftLogTopBar(title: String = "LiftLog") {
+fun LiftLogTopBar(title: String) {
     TopAppBar(
         title = { Text(text = title) },
         actions = {
             IconButton(onClick = { /* TODO: open settings */ }) {
                 Icon(
-                    imageVector = Icons.Filled.Settings,
-                    contentDescription = "Settings"
+                    Icons.Filled.Settings,
+                    contentDescription = "Settings",
                 )
             }
-        }
+        },
     )
 }

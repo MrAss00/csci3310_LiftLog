@@ -63,9 +63,10 @@ fun ExerciseSearchDialog(
     onDismiss: () -> Unit,
     onExerciseSelected: (Exercise) -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    viewModel: ExerciseSearchViewModel = viewModel()
+    viewModel: ExerciseSearchViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     // show error messages via snackbar
@@ -79,12 +80,12 @@ fun ExerciseSearchDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.statusBarsPadding()
+        modifier = Modifier.statusBarsPadding(),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
         ) {
             OutlinedTextField(
                 value = state.query,
@@ -101,32 +102,32 @@ fun ExerciseSearchDialog(
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp),
             )
             Spacer(Modifier.height(8.dp))
-            if (state.bodyParts.isNotEmpty()) {
+            if (state.bodyParts.isNotEmpty() && state.query.isEmpty()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
                         .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     FilterChip(
                         selected = state.bodyPart == null,
                         onClick = { viewModel.onBodyPartSelected(null) },
-                        label = { Text("All") }
+                        label = { Text("All") },
                     )
-                    state.bodyParts.forEach { part ->
+                    state.bodyParts.forEach { bodyPart ->
                         FilterChip(
-                            selected = state.bodyPart == part,
-                            onClick = { viewModel.onBodyPartSelected(part) },
+                            selected = state.bodyPart == bodyPart,
+                            onClick = { viewModel.onBodyPartSelected(bodyPart) },
                             label = {
                                 Text(
-                                    part.replaceFirstChar { it.uppercase() },
-                                    maxLines = 1
+                                    bodyPart.titlecase(),
+                                    maxLines = 1,
                                 )
-                            }
+                            },
                         )
                     }
                 }
@@ -144,33 +145,33 @@ fun ExerciseSearchDialog(
                     }
                 }
                 LaunchedEffect(shouldLoadMore) {
-                    if (shouldLoadMore) viewModel.loadMore()
+                    if (shouldLoadMore) viewModel.loadMoreExercises()
                 }
                 if (state.exercises.isEmpty() && !state.loading) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = "no exercises found",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
                     ) {
                         itemsIndexed(
                             state.exercises,
-                            key = { _, exercise -> exercise.exerciseId }
+                            key = { _, exercise -> exercise.id },
                         ) { _, exercise ->
                             ExerciseListItem(
                                 exercise = exercise,
-                                onClick = { onExerciseSelected(exercise) }
+                                onClick = { onExerciseSelected(exercise) },
                             )
                         }
                         if (state.loading) {
@@ -179,7 +180,7 @@ fun ExerciseSearchDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(16.dp),
-                                    contentAlignment = Alignment.Center
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     CircularProgressIndicator(modifier = Modifier.size(32.dp))
                                 }
@@ -189,7 +190,7 @@ fun ExerciseSearchDialog(
                 }
                 SnackbarHost(
                     hostState = snackbarHostState,
-                    modifier = Modifier.align(Alignment.BottomCenter)
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
         }
@@ -199,14 +200,14 @@ fun ExerciseSearchDialog(
 @Composable
 private fun ExerciseListItem(
     exercise: Exercise,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
@@ -214,11 +215,11 @@ private fun ExerciseListItem(
                 .decoderFactory(GifDecoder.Factory())
                 .crossfade(true)
                 .build(),
-            contentDescription = exercise.name,
             modifier = Modifier
                 .size(56.dp)
                 .clip(MaterialTheme.shapes.small),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            contentDescription = exercise.name,
         )
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -226,22 +227,22 @@ private fun ExerciseListItem(
                 text = exercise.name.titlecase(),
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = exercise.targetMuscles.joinToString(", ") { it.titlecase() },
+                text = exercise.targetMuscles.joinToString(" · ") { it.titlecase() },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             if (exercise.equipments.isNotEmpty()) {
                 Text(
-                    text = exercise.equipments.joinToString(", ") { it.titlecase() },
+                    text = exercise.equipments.joinToString(" · ") { it.titlecase() },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

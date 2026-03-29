@@ -30,7 +30,7 @@ fun LiftLogBottomBar(navController: NavHostController) {
                         launchSingleTop = true // avoid multiple copies of the same destination
                         restoreState = true // restore state when re-selecting a previous tab
                     }
-                }
+                },
             )
         }
     }

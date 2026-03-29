@@ -1,7 +1,7 @@
 package edu.cuhk.csci3310.liftlog.data.remote
 
 import edu.cuhk.csci3310.liftlog.data.remote.model.BodyPartsResponse
-import edu.cuhk.csci3310.liftlog.data.remote.model.ExerciseResponse
+import edu.cuhk.csci3310.liftlog.data.remote.model.ExercisesResponse
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -12,15 +12,15 @@ interface ExdbApi {
     suspend fun searchExercises(
         @Query("search") search: String = "",
         @Query("offset") offset: Int = 0,
-        @Query("limit") limit: Int = 20
-    ): ExerciseResponse
+        @Query("limit") limit: Int = 20,
+    ): ExercisesResponse
 
-    @GET("exercises/bodyPart/{bodyPart}")
-    suspend fun getExercisesByBodyPart(
+    @GET("bodyparts/{bodyPart}/exercises")
+    suspend fun listExercisesByBodyPart(
         @Path("bodyPart") bodyPart: String,
         @Query("offset") offset: Int = 0,
-        @Query("limit") limit: Int = 20
-    ): ExerciseResponse
+        @Query("limit") limit: Int = 20,
+    ): ExercisesResponse
 
     @GET("bodyparts")
     suspend fun getBodyParts(): BodyPartsResponse

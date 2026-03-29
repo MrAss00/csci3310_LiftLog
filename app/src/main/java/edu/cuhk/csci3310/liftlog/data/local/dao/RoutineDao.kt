@@ -9,7 +9,7 @@ import androidx.room.Transaction
 import androidx.room.Update
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineWorkoutEntity
-import edu.cuhk.csci3310.liftlog.data.local.model.RoutineWithWorkouts
+import edu.cuhk.csci3310.liftlog.data.local.model.Routine
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -19,15 +19,15 @@ interface RoutineDao {
 
     @Transaction
     @Query("SELECT * FROM routines ORDER BY updatedAt DESC")
-    fun getAllRoutines(): Flow<List<RoutineWithWorkouts>>
+    fun getAllRoutines(): Flow<List<Routine>>
 
     @Transaction
     @Query("SELECT * FROM routines WHERE name LIKE '%' || :query || '%' ORDER BY updatedAt DESC")
-    fun searchRoutines(query: String): Flow<List<RoutineWithWorkouts>>
+    fun searchRoutines(query: String): Flow<List<Routine>>
 
     @Transaction
     @Query("SELECT * FROM routines WHERE id = :id")
-    fun getRoutineById(id: Long): Flow<RoutineWithWorkouts?>
+    fun getRoutineById(id: Long): Flow<Routine?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRoutine(routine: RoutineEntity): Long

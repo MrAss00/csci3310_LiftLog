@@ -26,8 +26,10 @@ abstract class LiftLogDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     LiftLogDatabase::class.java,
-                    "liftlog_database"
-                ).build()
+                    name = "liftlog",
+                )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .build()
                 INSTANCE = instance
                 instance
             }

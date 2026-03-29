@@ -8,13 +8,12 @@ import androidx.navigation.NavHostController
 @Composable
 fun LiftLogTabScaffold(
     navController: NavHostController,
-    title: String,
-    content: @Composable (PaddingValues) -> Unit
+    title: String = "LiftLog",
+    topBar: @Composable () -> Unit = { LiftLogTopBar(title) },
+    bottomBar: @Composable () -> Unit = { LiftLogBottomBar(navController) },
+    content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
-        topBar = { LiftLogTopBar(title) },
-        bottomBar = { LiftLogBottomBar(navController) }
-    ) { innerPadding ->
+    Scaffold(topBar = topBar, bottomBar = bottomBar) { innerPadding ->
         content(innerPadding)
     }
 }
