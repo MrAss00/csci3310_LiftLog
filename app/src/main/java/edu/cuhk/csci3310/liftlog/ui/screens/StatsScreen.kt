@@ -37,7 +37,7 @@ fun StatsScreen(
     val monthlyVolume by viewModel.monthlyVolume.collectAsState(initial = 20L)
     val monthlyGoal by viewModel.monthlyGoal.collectAsState(initial = 100000L)
     val monthlyProgress by viewModel.monthlyProgress.collectAsState(initial = 20f)
-    val monthlySessions by viewModel.monthlySessions.collectAsState(initial = 0)      // ← added
+    val monthlySessions by viewModel.monthlySessions.collectAsState(initial = 0)
     val monthlyTotalSets by viewModel.monthlyTotalSets.collectAsState(initial = 0)
 
     LaunchedEffect(Unit) {
@@ -52,24 +52,8 @@ fun StatsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-//            item {
-//                Card(
-//                    modifier = Modifier.fillMaxWidth(),
-//                    colors = CardDefaults.cardColors(containerColor = Color.Yellow.copy(alpha = 0.2f))
-//                ) {
-//                    Column(modifier = Modifier.padding(16.dp)) {
-//                        Text("DEBUG - ViewModel values", style = MaterialTheme.typography.titleMedium)
-//                        Text("Monthly Volume = $monthlyVolume kg")
-//                        Text("Monthly Goal   = $monthlyGoal kg")
-//                        Text("Progress       = ${(monthlyProgress * 100).toInt()}%")
-//                    }
-//                }
-//            }
-
             item { MonthlyGoalCard(monthlyVolume, monthlyGoal, monthlyProgress) }
-
             item { DailyStatsRow(monthlySessions,monthlyTotalSets) }   // still hardcoded for now
-
             item { TodayGoalCards() }
             item { WeeklyGoalsSection() }
         }
@@ -225,22 +209,20 @@ private fun WeeklyGoalsSection() {
             Spacer(Modifier.height(12.dp))
 
             var completedCount = 0
-            // UPDATED: Now supports partial progress
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 val days = listOf("S", "M", "T", "W", "T", "F", "S")
 
-                // ← CHANGE THIS LIST TO YOUR REAL PROGRESS (0.0f ~ 1.0f)
                 val progressValues = listOf(
-                    1.0f,   // Sunday   - 100%
-                    1.0f,   // Monday   - 100%
-                    0.8f,   // Tuesday  - 80%
-                    0.5f,   // Wednesday- 50%
-                    1.0f,   // Thursday - 100%
-                    0.3f,   // Friday   - 30%
-                    0.0f    // Saturday - 0%
+                    1.0f,
+                    1.0f,
+                    0.8f,
+                    0.5f,
+                    1.0f,
+                    0.3f,
+                    0.0f
                 )
                 completedCount = progressValues.count { it >= 1.0f }
                 days.forEachIndexed { index, day ->

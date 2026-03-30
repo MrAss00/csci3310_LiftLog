@@ -26,4 +26,14 @@ class SessionRepository(private val dao: SessionDao) {
 
     suspend fun deleteSessionById(sessionId: Long) =
         dao.deleteSessionById(sessionId)
+
+    // for stat screen
+    fun getMonthlyVolume(startOfMonth: Long): Flow<Long> =
+        dao.getMonthlyVolume(startOfMonth)
+
+    fun getMonthlySessionCount(startOfMonth: Long): Flow<Int> =
+        dao.getMonthlySessionCount(startOfMonth)
+
+    fun getMonthlyTotalSets(startOfMonth: Long): Flow<Int> =
+        dao.getMonthlyTotalSets(startOfMonth)
 }

@@ -7,7 +7,7 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import edu.cuhk.csci3310.liftlog.data.local.LiftLogDatabase
-import edu.cuhk.csci3310.liftlog.data.repository.WorkoutRepository
+import edu.cuhk.csci3310.liftlog.data.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +20,7 @@ import java.time.ZoneId
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = LiftLogDatabase.getInstance(application)
-    private val repository = WorkoutRepository(database.workoutDao())
+    private val repository = SessionRepository(database.sessionDao())
 
     private val prefs = application.getSharedPreferences("liftlog_prefs", Context.MODE_PRIVATE)
 
@@ -39,20 +39,12 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _monthlyProgress = MutableStateFlow(0f)
     val monthlyProgress: StateFlow<Float> = _monthlyProgress.asStateFlow()
 
-    //  to refresh goal, called when returning from settings
+    // Refresh goal when returning from Settings
     fun refreshMonthlyGoal() {
         _monthlyGoal.value = prefs.getLong("monthly_goal_kg", 100_000L)
     }
 
     init {
-        // for testing only
-        _monthlyVolume.value = 20L
-
-        val goal = _monthlyGoal.value
-        _monthlyProgress.value = if (goal > 0) {
-            (_monthlyVolume.value/goal.toFloat()).coerceAtMost(1f)   // ← progress based on 20,000 kg
-        } else 0f
-/*
         viewModelScope.launch {
             val startOfMonth = LocalDate.now()
                 .withDayOfMonth(1)
@@ -75,7 +67,5 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
                 } else 0f
             }.collect { }
         }
-
- */
     }
 }

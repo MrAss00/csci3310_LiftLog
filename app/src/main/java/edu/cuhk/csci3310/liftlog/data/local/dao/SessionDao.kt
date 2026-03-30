@@ -31,4 +31,14 @@ interface SessionDao {
 
     @Query("DELETE FROM sessions WHERE id = :sessionId")
     suspend fun deleteSessionById(sessionId: Long)
+
+    // for stat screen analysis
+    @Query("""SELECT COALESCE(SUM(totalVolume), 0) FROM sessions WHERE startTime >= :startOfMonth """)
+    fun getMonthlyVolume(startOfMonth: Long): Flow<Long>
+
+    @Query(""" SELECT COUNT(*) FROM sessions WHERE startTime >= :startOfMonth """)
+    fun getMonthlySessionCount(startOfMonth: Long): Flow<Int>
+
+    @Query(""" SELECT COALESCE(SUM(setsCount), 0) FROM sessions WHERE startTime >= :startOfMonth """)
+    fun getMonthlyTotalSets(startOfMonth: Long): Flow<Int>
 }

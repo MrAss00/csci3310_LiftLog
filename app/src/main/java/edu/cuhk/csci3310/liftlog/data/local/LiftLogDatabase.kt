@@ -14,19 +14,17 @@ import edu.cuhk.csci3310.liftlog.data.local.dao.WorkoutDao
 import edu.cuhk.csci3310.liftlog.data.local.entity.WorkoutEntity
 
 @Database(
-    version = 4,
+    version = 6,
     exportSchema = false,
     entities = [
         RoutineEntity::class,
         RoutineWorkoutEntity::class,
         SessionEntity::class,
-        WorkoutEntity::class,
     ],
 )
 abstract class LiftLogDatabase : RoomDatabase() {
 
     abstract fun routineDao(): RoutineDao
-    abstract fun workoutDao(): WorkoutDao
     abstract fun sessionDao(): SessionDao
 
     companion object {

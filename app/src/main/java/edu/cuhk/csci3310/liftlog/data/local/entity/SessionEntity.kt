@@ -28,6 +28,9 @@ data class SessionEntity(
     val startTime: Long,
     val endTime: Long,
     val notes: String? = null,
+    // for stat screen
+    val totalVolume: Long = 0,
+    val setsCount: Int = 0
 ) {
     val duration: Long // in milliseconds
         get() = endTime - startTime
