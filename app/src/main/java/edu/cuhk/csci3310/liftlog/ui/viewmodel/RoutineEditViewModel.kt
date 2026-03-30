@@ -18,9 +18,7 @@ import kotlinx.coroutines.launch
 data class RoutineEditViewState(
     val name: String = "",
     val workouts: List<RoutineWorkout> = emptyList(),
-    val loading: Boolean = false,
-    val saving: Boolean = false,
-    val saved: Boolean = false,
+    val isSaved: Boolean = false,
     val message: String? = null,
 )
 
@@ -32,7 +30,7 @@ class RoutineEditViewModel(
     private val repository: RoutineRepository
 
     private val id: Long = savedStateHandle.get<Long>("id") ?: -1L
-    val editing: Boolean = id > 0
+    val isEditing: Boolean = id > 0
 
     private val _state = MutableStateFlow(RoutineEditViewState())
     val state: StateFlow<RoutineEditViewState> = _state.asStateFlow()
@@ -41,23 +39,21 @@ class RoutineEditViewModel(
         val database = LiftLogDatabase.getInstance(application)
         repository = RoutineRepository(database.routineDao())
 
-        if (editing) load()
+        if (isEditing) load()
     }
 
     private fun load() {
         viewModelScope.launch {
-            _state.update { it.copy(loading = true) }
             val routine = repository.getRoutineById(id).firstOrNull()
             if (routine != null) {
                 _state.update {
                     it.copy(
                         name = routine.routine.name,
                         workouts = routine.workouts.sortedBy { w -> w.index },
-                        loading = false,
                     )
                 }
             } else {
-                _state.update { it.copy(loading = false, message = "routine not found") }
+                _state.update { it.copy(message = "routine not found") }
             }
         }
     }
@@ -102,10 +98,9 @@ class RoutineEditViewModel(
             return
         }
         viewModelScope.launch {
-            _state.update { it.copy(saving = true, message = null) }
             try {
                 val now = System.currentTimeMillis()
-                val idSaved = if (editing) {
+                val savedRoutineId = if (isEditing) {
                     repository.updateRoutine(
                         RoutineEntity(
                             id = id,
@@ -124,14 +119,14 @@ class RoutineEditViewModel(
                     )
                 }
                 repository.saveWorkoutsForRoutine(
-                    idSaved,
+                    savedRoutineId,
                     state.workouts.mapIndexed { index, w ->
-                        w.copy(routineId = idSaved, index = index)
+                        w.copy(routineId = savedRoutineId, index = index)
                     },
                 )
-                _state.update { it.copy(saving = false, saved = true) }
+                _state.update { it.copy(isSaved = true) }
             } catch (e: Exception) {
-                _state.update { it.copy(saving = false, message = e.message ?: "failed to save") }
+                _state.update { it.copy(message = e.message ?: "failed to save") }
             }
         }
     }

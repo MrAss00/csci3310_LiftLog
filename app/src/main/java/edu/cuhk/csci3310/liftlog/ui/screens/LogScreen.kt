@@ -1,5 +1,6 @@
 package edu.cuhk.csci3310.liftlog.ui.screens
 
+import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
@@ -19,10 +20,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -30,7 +31,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -56,19 +56,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import edu.cuhk.csci3310.liftlog.data.local.model.Routine
 import edu.cuhk.csci3310.liftlog.data.local.model.Session
+import edu.cuhk.csci3310.liftlog.titlecase
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.LogViewModel
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -89,7 +95,7 @@ fun LogScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 CalendarView(
-                    dots = state.dots,
+                    dots = state.dottedDays,
                     currentMonth = state.currentMonth,
                     selectedDate = state.selectedDate,
                     onDateSelected = viewModel::onDateSelected,
@@ -127,7 +133,7 @@ fun LogScreen(
                             SessionCard(
                                 session = session,
                                 routine = session.routineId?.let {
-                                    viewModel.getRoutineById(it)
+                                    viewModel.getRoutine(it)
                                 },
                                 onDelete = { sessionToDelete = session },
                                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -137,13 +143,15 @@ fun LogScreen(
                     }
                 }
             }
-            FloatingActionButton(
-                onClick = { showRoutinePickerDialog = true },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Start Session")
+            if (state.routines.isNotEmpty()) {
+                FloatingActionButton(
+                    onClick = { showRoutinePickerDialog = true },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Start Session")
+                }
             }
         }
 
@@ -162,7 +170,7 @@ fun LogScreen(
             AlertDialog(
                 onDismissRequest = { sessionToDelete = null },
                 title = { Text("Delete Session") },
-                text = { Text("Delete this \"${session.routineName}\" session? This cannot be undone.") },
+                text = { Text("Delete session \"${session.routineName}\"? This cannot be undone.") },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -322,6 +330,7 @@ private fun CalendarDay(
     }
 }
 
+@SuppressLint("DefaultLocale")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun SessionCard(
@@ -332,17 +341,17 @@ private fun SessionCard(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
-    val startTimeFormatted = remember(session.startTime) {
-        java.time.Instant.ofEpochMilli(session.startTime)
-            .atZone(java.time.ZoneId.systemDefault())
+    val formattedStartTime = remember(session.startTime) {
+        Instant.ofEpochMilli(session.startTime)
+            .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("h:mm a"))
     }
 
-    val durationFormatted = remember(session.duration) {
-        val minutes = session.duration / 1000 / 60
-        val hours = minutes / 60
-        val mins = minutes % 60
-        if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+    val formattedDuration = remember(session.duration) {
+        val duration = session.duration.toDuration(DurationUnit.MILLISECONDS)
+        duration.toComponents { minues, seconds, _ ->
+            String.format("%02dm%02ds", minues, seconds)
+        }
     }
 
     Card(
@@ -355,17 +364,10 @@ private fun SessionCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .clickable { isExpanded = !isExpanded },
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    Icons.Filled.FitnessCenter,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-                Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = session.routineName,
@@ -376,8 +378,8 @@ private fun SessionCard(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "$startTimeFormatted • $durationFormatted",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "$formattedStartTime • $formattedDuration",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -399,8 +401,8 @@ private fun SessionCard(
                 enter = expandVertically(),
                 exit = shrinkVertically(),
             ) {
-                Column {
-                    HorizontalDivider()
+                HorizontalDivider(thickness = Dp.Hairline)
+                Column(modifier = Modifier.padding(vertical = 8.dp)) {
                     if (routine != null && routine.workouts.isNotEmpty()) {
                         routine.workouts
                             .sortedBy { it.index }
@@ -408,7 +410,7 @@ private fun SessionCard(
                                 ListItem(
                                     headlineContent = {
                                         Text(
-                                            text = workout.exerciseName,
+                                            text = workout.exerciseName.titlecase(),
                                             style = MaterialTheme.typography.bodyMedium,
                                         )
                                     },
@@ -420,10 +422,9 @@ private fun SessionCard(
                                         )
                                     },
                                     colors = ListItemDefaults.colors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-                                            alpha = 0.3f,
-                                        ),
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                                     ),
+                                    modifier = Modifier.height(56.dp),
                                 )
                             }
                     } else {
@@ -438,6 +439,7 @@ private fun SessionCard(
                             colors = ListItemDefaults.colors(
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                             ),
+                            modifier = Modifier.height(56.dp),
                         )
                     }
                     session.notes?.let { notes ->
@@ -467,39 +469,34 @@ private fun RoutinePickerDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Routine") },
         text = {
-            if (routines.isEmpty()) {
-                Text(
-                    text = "No routines available. Create a routine first.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                LazyColumn {
-                    items(routines, key = { it.routine.id }) { routine ->
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    text = routine.routine.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                )
-                            },
-                            supportingContent = {
-                                Text(
-                                    text = "${routine.workouts.size} exercises",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    imageVector = Icons.Filled.FitnessCenter,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            },
-                            modifier = Modifier.clickable { onRoutineSelected(routine) },
-                        )
-                    }
+            LazyColumn {
+                items(routines, key = { it.routine.id }) { routine ->
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = routine.routine.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        },
+                        supportingContent = {
+                            Text(
+                                text = "${routine.workouts.size} workouts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+//                            leadingContent = {
+//                                Icon(
+//                                    imageVector = Icons.Filled.FitnessCenter,
+//                                    contentDescription = null,
+//                                    tint = MaterialTheme.colorScheme.primary,
+//                                )
+//                            },
+                        modifier = Modifier
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onRoutineSelected(routine) },
+                    )
                 }
             }
         },

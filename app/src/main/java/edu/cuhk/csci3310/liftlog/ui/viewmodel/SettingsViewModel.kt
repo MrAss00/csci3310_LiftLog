@@ -2,6 +2,7 @@ package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun updateMonthlyGoal(newGoal: Long) {
         viewModelScope.launch {
             _monthlyGoal.value = newGoal
-            prefs.edit().putLong("monthly_goal_kg", newGoal).apply()
+            prefs.edit { putLong("monthly_goal_kg", newGoal) }
         }
     }
 }

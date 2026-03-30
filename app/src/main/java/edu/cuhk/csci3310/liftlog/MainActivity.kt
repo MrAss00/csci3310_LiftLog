@@ -53,7 +53,7 @@ fun LiftLogApp() {
         composable(Screen.Stats.route) { StatsScreen(navController) }
         composable(Screen.Log.route) { LogScreen(navController) }
         composable(Screen.Routines.route) { RoutinesScreen(navController) }
-        composable(Screen.Settings.route) {SettingsScreen(navController) }
+        composable(Screen.Settings.route) { SettingsScreen(navController) }
 
         composable(
             "routine_create",

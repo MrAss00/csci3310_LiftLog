@@ -27,7 +27,7 @@ import java.time.ZoneId
 data class LogViewState(
     val selectedDate: LocalDate = LocalDate.now(),
     val currentMonth: YearMonth = YearMonth.now(),
-    val dots: Set<Int> = emptySet(),
+    val dottedDays: Set<Int> = emptySet(),
     val sessions: List<Session> = emptyList(),
     val routines: List<Routine> = emptyList(),
 )
@@ -75,7 +75,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                                 .atZone(ZoneId.systemDefault())
                                 .dayOfMonth
                         }
-                        _state.update { it.copy(dots = days.toSet()) }
+                        _state.update { it.copy(dottedDays = days.toSet()) }
                     }
             }
         }
@@ -100,10 +100,6 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun onMonthChanged(month: YearMonth) {
-        _state.update { it.copy(currentMonth = month) }
-    }
-
     fun goToPreviousMonth() {
         _state.update { it.copy(currentMonth = it.currentMonth.minusMonths(1)) }
     }
@@ -118,7 +114,5 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun getRoutineById(id: Long): Routine? {
-        return _state.value.routines.find { it.routine.id == id }
-    }
+    fun getRoutine(id: Long): Routine? = _state.value.routines.find { it.routine.id == id }
 }

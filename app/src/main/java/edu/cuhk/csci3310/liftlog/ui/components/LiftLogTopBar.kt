@@ -13,11 +13,11 @@ import edu.cuhk.csci3310.liftlog.ui.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LiftLogTopBar(title: String = "LiftLog",navController: NavHostController) {
+fun LiftLogTopBar(title: String = "LiftLog", navController: NavHostController) {
     TopAppBar(
         title = { Text(text = title) },
         actions = {
-            IconButton(onClick = { navController.navigate(Screen.Settings.route)}) {
+            IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
                 Icon(
                     Icons.Filled.Settings,
                     contentDescription = "Settings",

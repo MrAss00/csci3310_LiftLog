@@ -2,36 +2,49 @@ package edu.cuhk.csci3310.liftlog.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
-
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.StatsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun StatsScreen(
     navController: NavHostController,
-    viewModel: StatsViewModel = viewModel()
+    viewModel: StatsViewModel = viewModel(),
 ) {
     // ← These lines collect the real values from ViewModel
     val monthlyVolume by viewModel.monthlyVolume.collectAsState(initial = 20L)
@@ -50,7 +63,7 @@ fun StatsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item { MonthlyGoalCard(monthlyVolume, monthlyGoal, monthlyProgress) }
             item { DailyStatsRow(monthlySessions,monthlyTotalSets) }   // still hardcoded for now
@@ -66,24 +79,24 @@ private fun MonthlyGoalCard(volume: Long, goal: Long, progress: Float) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Row(
             modifier = Modifier
                 .padding(20.dp)
                 .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Monthly goal",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = "${volume.formatWithCommas()} / ${goal.formatWithCommas()} kg",
                     style = MaterialTheme.typography.headlineLarge.copy(fontSize = 36.sp),
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
             }
 
@@ -93,12 +106,12 @@ private fun MonthlyGoalCard(volume: Long, goal: Long, progress: Float) {
                     modifier = Modifier.size(80.dp),
                     color = MaterialTheme.colorScheme.primary,
                     strokeWidth = 8.dp,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
                 Text(
                     text = "${(progress * 100).toInt()}%",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }
@@ -109,28 +122,28 @@ private fun MonthlyGoalCard(volume: Long, goal: Long, progress: Float) {
 private fun DailyStatsRow(sessions: Int, totalSets: Int) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         StatSmallCard(
             icon = Icons.Default.FitnessCenter,
             value = sessions.toString(),
             label = "Sessions",
             color = Color(0xFF4CAF50),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         StatSmallCard(
             icon = Icons.Default.Repeat,
             value = totalSets.toString(),
             label = "Total Sets",
             color = Color(0xFF2196F3),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         StatSmallCard(
             icon = Icons.Default.ArrowUpward,
             value = "12",
             label = "PRs",
             color = Color(0xFFFF9800),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -141,17 +154,25 @@ private fun StatSmallCard(
     value: String,
     label: String,
     color: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(modifier = modifier, shape = RoundedCornerShape(12.dp)) {
         Column(
             modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(icon, null, tint = color, modifier = Modifier.size(28.dp))
             Spacer(Modifier.height(4.dp))
-            Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -160,18 +181,33 @@ private fun StatSmallCard(
 private fun TodayGoalCards() {
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
-            Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text("Today's goal", style = MaterialTheme.typography.bodyMedium)
-                Text("1,420 kg", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    "1,420 kg",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
         Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
-            Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text("Remaining", style = MaterialTheme.typography.bodyMedium)
-                Text("862 kg", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "862 kg",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
@@ -181,29 +217,29 @@ private fun TodayGoalCards() {
 private fun WeeklyGoalsSection() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = "Weekly goals",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
                     text = "Check reports →",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
 
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Your activity for last 7 days",
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
             )
 
             Spacer(Modifier.height(12.dp))
@@ -211,7 +247,7 @@ private fun WeeklyGoalsSection() {
             var completedCount = 0
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 val days = listOf("S", "M", "T", "W", "T", "F", "S")
 
@@ -236,16 +272,16 @@ private fun WeeklyGoalsSection() {
                                 color = if (progress >= 1f) Color(0xFF4CAF50)
                                 else MaterialTheme.colorScheme.primary,
                                 strokeWidth = 4.dp,
-                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
                             )
 
                             // Show checkmark only when fully completed
-                            if (progress >= 1f){
+                            if (progress >= 1f) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
                                     tint = Color(0xFF4CAF50),
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         }
@@ -254,7 +290,7 @@ private fun WeeklyGoalsSection() {
                         Text(
                             text = day,
                             style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                     }
                 }
@@ -265,7 +301,7 @@ private fun WeeklyGoalsSection() {
                 text = "${completedCount}/7 Completed",
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFF4CAF50),
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
             )
         }
     }

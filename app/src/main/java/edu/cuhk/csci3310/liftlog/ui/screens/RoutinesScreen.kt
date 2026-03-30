@@ -3,7 +3,6 @@ package edu.cuhk.csci3310.liftlog.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -133,7 +132,6 @@ fun RoutinesScreen(
 
         routineToDelete?.let {
             AlertDialog(
-                onDismissRequest = { routineToDelete = null },
                 title = { Text("Delete Routine") },
                 text = { Text("Delete \"${it.routine.name}\"? This cannot be undone.") },
                 confirmButton = {
@@ -151,6 +149,7 @@ fun RoutinesScreen(
                         Text("Cancel")
                     }
                 },
+                onDismissRequest = { routineToDelete = null },
             )
         }
     }
@@ -168,9 +167,9 @@ private fun RoutineListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clickable(onClick = onClick),
+            .padding(horizontal = 16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        onClick = onClick,
     ) {
         Row(
             modifier = Modifier
