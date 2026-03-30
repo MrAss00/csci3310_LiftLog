@@ -192,6 +192,7 @@ private fun TodayGoalCards() {
         }
     }
 }
+
 @Composable
 private fun WeeklyGoalsSection() {
     Card(
@@ -223,25 +224,40 @@ private fun WeeklyGoalsSection() {
 
             Spacer(Modifier.height(12.dp))
 
+            // UPDATED: Now supports partial progress
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 val days = listOf("S", "M", "T", "W", "T", "F", "S")
-                val completed = listOf(true, true, true, true, true, false, false) // 5/7
+
+                // ← CHANGE THIS LIST TO YOUR REAL PROGRESS (0.0f ~ 1.0f)
+                val progressValues = listOf(
+                    1.0f,   // Sunday   - 100%
+                    1.0f,   // Monday   - 100%
+                    0.8f,   // Tuesday  - 80%
+                    0.5f,   // Wednesday- 50%
+                    1.0f,   // Thursday - 100%
+                    0.3f,   // Friday   - 30%
+                    0.0f    // Saturday - 0%
+                )
 
                 days.forEachIndexed { index, day ->
+                    val progress = progressValues[index]
+
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
-                                progress = { if (completed[index]) 1f else 0f },
+                                progress = { progress },
                                 modifier = Modifier.size(36.dp),
-                                color = if (completed[index]) Color(0xFF4CAF50) else MaterialTheme.colorScheme.surfaceVariant,
+                                color = if (progress >= 1f) Color(0xFF4CAF50)
+                                else MaterialTheme.colorScheme.primary,
                                 strokeWidth = 4.dp,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
 
-                            if (completed[index]) {
+                            // Show checkmark only when fully completed
+                            if (progress >= 1f) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
@@ -249,8 +265,9 @@ private fun WeeklyGoalsSection() {
                                     modifier = Modifier.size(20.dp)
                                 )
                             } else {
+                                // Show day letter when not fully completed
                                 Text(
-                                    text = " ",
+                                    text = day,
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -270,7 +287,7 @@ private fun WeeklyGoalsSection() {
 
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "5/7 Completed",
+                text = "5/7 Completed",   // ← you can make this dynamic later
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFF4CAF50),
                 fontWeight = FontWeight.Bold
