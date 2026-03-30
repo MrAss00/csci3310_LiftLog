@@ -9,7 +9,7 @@ import androidx.navigation.NavHostController
 fun LiftLogTabScaffold(
     navController: NavHostController,
     title: String = "LiftLog",
-    topBar: @Composable () -> Unit = { LiftLogTopBar(title) },
+    topBar: @Composable () -> Unit = { LiftLogTopBar(title,navController = navController) },
     bottomBar: @Composable () -> Unit = { LiftLogBottomBar(navController) },
     content: @Composable (PaddingValues) -> Unit,
 ) {
