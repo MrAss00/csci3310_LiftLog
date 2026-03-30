@@ -224,6 +224,7 @@ private fun WeeklyGoalsSection() {
 
             Spacer(Modifier.height(12.dp))
 
+            var completedCount = 0
             // UPDATED: Now supports partial progress
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -241,7 +242,7 @@ private fun WeeklyGoalsSection() {
                     0.3f,   // Friday   - 30%
                     0.0f    // Saturday - 0%
                 )
-
+                completedCount = progressValues.count { it >= 1.0f }
                 days.forEachIndexed { index, day ->
                     val progress = progressValues[index]
 
@@ -257,20 +258,12 @@ private fun WeeklyGoalsSection() {
                             )
 
                             // Show checkmark only when fully completed
-                            if (progress >= 1f) {
+                            if (progress >= 1f){
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = Color(0xFF4CAF50),
                                     modifier = Modifier.size(20.dp)
-                                )
-                            } else {
-                                // Show day letter when not fully completed
-                                Text(
-                                    text = day,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -287,7 +280,7 @@ private fun WeeklyGoalsSection() {
 
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "5/7 Completed",   // ← you can make this dynamic later
+                text = "${completedCount}/7 Completed",
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFF4CAF50),
                 fontWeight = FontWeight.Bold
