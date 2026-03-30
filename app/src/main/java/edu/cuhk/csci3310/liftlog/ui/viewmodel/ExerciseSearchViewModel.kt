@@ -5,38 +5,48 @@ import androidx.lifecycle.viewModelScope
 import edu.cuhk.csci3310.liftlog.data.remote.RetrofitInstance
 import edu.cuhk.csci3310.liftlog.data.remote.model.Exercise
 import edu.cuhk.csci3310.liftlog.data.repository.ExerciseRepository
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
-data class ExerciseSearchState(
+data class ExerciseSearchViewState(
     val query: String = "",
     val exercises: List<Exercise> = emptyList(),
     val bodyParts: List<String> = emptyList(),
     val bodyPart: String? = null,
     val loading: Boolean = false,
     val more: Boolean = true,
-    val message: String? = null
+    val message: String? = null,
 )
 
+@OptIn(FlowPreview::class)
 class ExerciseSearchViewModel : ViewModel() {
 
     private val repository = ExerciseRepository(RetrofitInstance.api)
 
-    private val _state = MutableStateFlow(ExerciseSearchState())
-    val state: StateFlow<ExerciseSearchState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(ExerciseSearchViewState())
+    val state: StateFlow<ExerciseSearchViewState> = _state.asStateFlow()
 
-    private var searchJob: Job? = null
     private var offset = 0
     private val size = 20
 
     init {
         loadBodyParts()
-        searchExercises(debounce = false)
+        loadExercises()
+
+        viewModelScope.launch {
+            state.map { it.query to it.bodyPart }
+                .debounce(300.milliseconds)
+                .distinctUntilChanged()
+                .collect { loadExercises() }
+        }
     }
 
     private fun loadBodyParts() {
@@ -48,31 +58,27 @@ class ExerciseSearchViewModel : ViewModel() {
         }
     }
 
-    fun onQueryChange(query: String) {
-        _state.update { it.copy(query = query) }
-        searchExercises(debounce = true)
+    fun loadMoreExercises() {
+        if (_state.value.more) {
+            loadExercises(append = true)
+        }
     }
 
-    fun onBodyPartSelected(bodyPart: String?) {
-        _state.update { it.copy(bodyPart = bodyPart) }
-        searchExercises(debounce = false)
-    }
+    private fun loadExercises(append: Boolean = false) {
+        if (_state.value.loading) return
 
-    private fun searchExercises(debounce: Boolean) {
-        searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            if (debounce) delay(400)
+        val current = if (append) offset else 0
 
-            offset = 0
+        viewModelScope.launch {
             _state.update { it.copy(loading = true, message = null) }
 
-            val result = fetchExercises(offset = 0)
+            val result = fetchExercises(offset = current)
             result.onSuccess { exercises ->
                 _state.update {
                     it.copy(
-                        exercises = exercises,
+                        exercises = if (append) it.exercises + exercises else exercises,
                         loading = false,
-                        more = exercises.size >= size
+                        more = exercises.size >= size,
                     )
                 }
                 offset = exercises.size
@@ -80,35 +86,7 @@ class ExerciseSearchViewModel : ViewModel() {
                 _state.update {
                     it.copy(
                         loading = false,
-                        message = error.message ?: "failed to load exercises"
-                    )
-                }
-            }
-        }
-    }
-
-    fun loadMore() {
-        val state = _state.value
-        if (state.loading || !state.more) return
-
-        viewModelScope.launch {
-            _state.update { it.copy(loading = true) }
-
-            val result = fetchExercises(offset = offset)
-            result.onSuccess { exercises ->
-                _state.update {
-                    it.copy(
-                        exercises = it.exercises + exercises,
-                        loading = false,
-                        more = exercises.size >= size
-                    )
-                }
-                offset += exercises.size
-            }.onFailure { error ->
-                _state.update {
-                    it.copy(
-                        loading = false,
-                        message = error.message ?: "failed to load more"
+                        message = error.message ?: "failed to load exercises",
                     )
                 }
             }
@@ -118,18 +96,26 @@ class ExerciseSearchViewModel : ViewModel() {
     private suspend fun fetchExercises(offset: Int): Result<List<Exercise>> {
         val state = _state.value
         return if (state.bodyPart != null) {
-            repository.getExercisesByBodyPart(
+            repository.listExercisesByBodyPart(
                 bodyPart = state.bodyPart,
                 offset = offset,
-                limit = size
+                limit = size,
             )
         } else {
             repository.searchExercises(
                 query = state.query,
                 offset = offset,
-                limit = size
+                limit = size,
             )
         }
+    }
+
+    fun onQueryChange(query: String) {
+        _state.update { it.copy(query = query, bodyPart = null) }
+    }
+
+    fun onBodyPartSelected(bodyPart: String?) {
+        _state.update { it.copy(bodyPart = bodyPart) }
     }
 
     fun clearMessage() {

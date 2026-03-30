@@ -54,7 +54,7 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.decode.GifDecoder
 import coil.request.ImageRequest
-import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineWorkoutEntity
+import edu.cuhk.csci3310.liftlog.data.local.model.RoutineWorkout
 import edu.cuhk.csci3310.liftlog.titlecase
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.RoutineEditViewModel
 
@@ -62,11 +62,13 @@ import edu.cuhk.csci3310.liftlog.ui.viewmodel.RoutineEditViewModel
 @Composable
 fun RoutineEditScreen(
     navController: NavHostController,
-    viewModel: RoutineEditViewModel = viewModel()
+    viewModel: RoutineEditViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+
     var showExerciseSearch by remember { mutableStateOf(false) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // navigate back on successful save
     LaunchedEffect(state.saved) {
@@ -89,22 +91,22 @@ fun RoutineEditScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             if (viewModel.editing) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Close,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
                         )
                     }
                 },
                 actions = {
                     IconButton(
-                        onClick = { viewModel.save() },
-                        enabled = !state.saving
+                        onClick = viewModel::save,
+                        enabled = !state.saving,
                     ) {
                         if (state.saving) CircularProgressIndicator(modifier = Modifier.size(24.dp))
                         else Icon(Icons.Filled.Check, contentDescription = "Save")
                     }
-                }
+                },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         if (state.loading) {
             Column(
@@ -112,7 +114,7 @@ fun RoutineEditScreen(
                     .fillMaxSize()
                     .padding(innerPadding),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
             ) {
                 CircularProgressIndicator()
             }
@@ -121,18 +123,18 @@ fun RoutineEditScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
                     OutlinedTextField(
                         value = state.name,
-                        onValueChange = viewModel::setRoutineName,
+                        onValueChange = viewModel::setName,
                         label = { Text("Routine Name") },
                         placeholder = { Text("e.g. Push Day") },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
                 item {
@@ -140,18 +142,19 @@ fun RoutineEditScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = "Workouts (${state.workouts.size})",
                             style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
                 itemsIndexed(
                     state.workouts,
-                    key = { index, w -> "${w.exerciseId}_$index" }) { index, workout ->
+                    key = { index, w -> "${w.exerciseId}_$index" },
+                ) { index, workout ->
                     WorkoutItem(
                         workout = workout,
                         index = index,
@@ -159,12 +162,16 @@ fun RoutineEditScreen(
                         isLast = index == state.workouts.size - 1,
                         onUpdate = { viewModel.updateWorkout(index, it) },
                         onRemove = { viewModel.removeWorkout(index) },
-                        onMoveUp = { if (index > 0) viewModel.moveWorkout(index, index - 1) },
+                        onMoveUp = {
+                            if (index > 0) {
+                                viewModel.moveWorkout(index, index - 1)
+                            }
+                        },
                         onMoveDown = {
                             if (index < state.workouts.size - 1) {
                                 viewModel.moveWorkout(index, index + 1)
                             }
-                        }
+                        },
                     )
                 }
                 item {
@@ -172,7 +179,7 @@ fun RoutineEditScreen(
                         onClick = { showExerciseSearch = true },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -189,45 +196,45 @@ fun RoutineEditScreen(
             onDismiss = { showExerciseSearch = false },
             onExerciseSelected = { exercise ->
                 viewModel.addWorkout(
-                    RoutineWorkoutEntity(
+                    RoutineWorkout(
                         routineId = 0,
-                        exerciseId = exercise.exerciseId,
+                        exerciseId = exercise.id,
                         exerciseName = exercise.name,
                         exerciseGifUrl = exercise.gifUrl,
                         sets = 0,
                         reps = 0,
                         weight = 0.0,
                         interval = 0,
-                        index = 0
-                    )
+                        index = 0,
+                    ),
                 )
                 showExerciseSearch = false
-            }
+            },
         )
     }
 }
 
 @Composable
 private fun WorkoutItem(
-    workout: RoutineWorkoutEntity,
+    workout: RoutineWorkout,
     index: Int,
     isFirst: Boolean,
     isLast: Boolean,
-    onUpdate: (RoutineWorkoutEntity) -> Unit,
+    onUpdate: (RoutineWorkout) -> Unit,
     onRemove: () -> Unit,
     onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit
+    onMoveDown: () -> Unit,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -235,11 +242,11 @@ private fun WorkoutItem(
                         .decoderFactory(GifDecoder.Factory())
                         .crossfade(true)
                         .build(),
-                    contentDescription = workout.exerciseName,
                     modifier = Modifier
                         .size(56.dp)
                         .clip(MaterialTheme.shapes.small),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    contentDescription = workout.exerciseName,
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -247,21 +254,21 @@ private fun WorkoutItem(
                         text = "${index + 1}. ${workout.exerciseName.titlecase()}",
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 IconButton(onClick = onMoveUp, enabled = !isFirst) {
                     Icon(
                         Icons.Filled.ArrowUpward,
                         contentDescription = "Move Up",
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
                 IconButton(onClick = onMoveDown, enabled = !isLast) {
                     Icon(
                         Icons.Filled.ArrowDownward,
                         contentDescription = "Move Down",
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
                 IconButton(onClick = onRemove) {
@@ -269,38 +276,38 @@ private fun WorkoutItem(
                         Icons.Filled.Close,
                         contentDescription = "Remove",
                         tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 NumberField(
                     label = "Sets",
                     value = workout.sets,
                     onValueChange = { onUpdate(workout.copy(sets = it)) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 NumberField(
                     label = "Reps",
                     value = workout.reps,
                     onValueChange = { onUpdate(workout.copy(reps = it)) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 DecimalField(
                     label = "Weight",
                     value = workout.weight,
                     onValueChange = { onUpdate(workout.copy(weight = it)) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 NumberField(
                     label = "Interval",
                     value = workout.interval,
                     onValueChange = { onUpdate(workout.copy(interval = it)) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -312,7 +319,7 @@ private fun NumberField(
     label: String,
     value: Int,
     onValueChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var text by remember(value) { mutableStateOf(if (value == 0) "" else value.toString()) }
 
@@ -325,7 +332,7 @@ private fun NumberField(
         label = { Text(label, style = MaterialTheme.typography.labelSmall) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
@@ -334,7 +341,7 @@ private fun DecimalField(
     label: String,
     value: Double,
     onValueChange: (Double) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var text by remember(value) { mutableStateOf(if (value == 0.0) "" else value.toString()) }
 
@@ -347,6 +354,6 @@ private fun DecimalField(
         label = { Text(label, style = MaterialTheme.typography.labelSmall) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = modifier
+        modifier = modifier,
     )
 }

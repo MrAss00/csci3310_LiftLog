@@ -9,23 +9,23 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class Screen(
     val route: String,
     val label: String,
-    val icon: ImageVector
+    val icon: ImageVector,
 ) {
     data object Stats : Screen(
         route = "stats",
         label = "Stats",
-        icon = Icons.Filled.BarChart
+        icon = Icons.Filled.BarChart,
     )
 
     data object Log : Screen(
         route = "log",
         label = "Log",
-        icon = Icons.AutoMirrored.Filled.MenuBook
+        icon = Icons.AutoMirrored.Filled.MenuBook,
     )
 
     data object Routines : Screen(
         route = "routines",
         label = "Routines",
-        icon = Icons.Filled.FitnessCenter
+        icon = Icons.Filled.FitnessCenter,
     )
 }

@@ -46,30 +46,29 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import edu.cuhk.csci3310.liftlog.data.local.model.RoutineWithWorkouts
+import edu.cuhk.csci3310.liftlog.data.local.model.Routine
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.RoutinesViewModel
 
 @Composable
 fun RoutinesScreen(
     navController: NavHostController,
-    viewModel: RoutinesViewModel = viewModel()
+    viewModel: RoutinesViewModel = viewModel(),
 ) {
-    val routines by viewModel.routines.collectAsState()
-    val query by viewModel.query.collectAsState()
+    val state by viewModel.state.collectAsState()
 
-    var routineToDelete by remember { mutableStateOf<RoutineWithWorkouts?>(null) }
+    var routineToDelete by remember { mutableStateOf<Routine?>(null) }
 
     LiftLogTabScaffold(navController, title = "Routines") { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = query,
+                    value = state.query,
                     onValueChange = viewModel::onQueryChange,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -78,44 +77,44 @@ fun RoutinesScreen(
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     trailingIcon = {
                         AnimatedVisibility(
-                            visible = query.isNotEmpty(),
+                            visible = state.query.isNotEmpty(),
                             enter = fadeIn(),
-                            exit = fadeOut()
+                            exit = fadeOut(),
                         ) {
                             IconButton(onClick = { viewModel.onQueryChange("") }) {
                                 Icon(Icons.Filled.Close, contentDescription = "Clear Search")
                             }
                         }
                     },
-                    singleLine = true
+                    singleLine = true,
                 )
-                if (routines.isEmpty()) {
+                if (state.routines.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(32.dp),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = if (query.isNotEmpty()) "no routines match"
+                            text = if (state.query.isNotEmpty()) "no routines match"
                             else "tap + to create new routine",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         item { Spacer(Modifier.height(8.dp)) }
-                        items(routines, key = { it.routine.id }) { routineWithWorkouts ->
-                            val id = routineWithWorkouts.routine.id
+                        items(state.routines, key = { it.routine.id }) { routine ->
+                            val id = routine.routine.id
                             RoutineListItem(
-                                routineWithWorkouts = routineWithWorkouts,
+                                routine = routine,
                                 onClick = { navController.navigate("routine_edit/$id") },
                                 onEdit = { navController.navigate("routine_edit/$id") },
-                                onDelete = { routineToDelete = routineWithWorkouts }
+                                onDelete = { routineToDelete = routine },
                             )
                         }
                         item { Spacer(Modifier.height(80.dp)) }  // prevent FAB overlapping
@@ -126,22 +125,24 @@ fun RoutinesScreen(
                 onClick = { navController.navigate("routine_create") },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp)
+                    .padding(16.dp),
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Create Routine")
             }
         }
 
-        routineToDelete?.let { routine ->
+        routineToDelete?.let {
             AlertDialog(
                 onDismissRequest = { routineToDelete = null },
                 title = { Text("Delete Routine") },
-                text = { Text("Delete \"${routine.routine.name}\"? This cannot be undone.") },
+                text = { Text("Delete \"${it.routine.name}\"? This cannot be undone.") },
                 confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.deleteRoutine(routine)
-                        routineToDelete = null
-                    }) {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteRoutine(it)
+                            routineToDelete = null
+                        },
+                    ) {
                         Text("Delete", color = MaterialTheme.colorScheme.error)
                     }
                 },
@@ -149,7 +150,7 @@ fun RoutinesScreen(
                     TextButton(onClick = { routineToDelete = null }) {
                         Text("Cancel")
                     }
-                }
+                },
             )
         }
     }
@@ -157,10 +158,10 @@ fun RoutinesScreen(
 
 @Composable
 private fun RoutineListItem(
-    routineWithWorkouts: RoutineWithWorkouts,
+    routine: Routine,
     onClick: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -169,26 +170,26 @@ private fun RoutineListItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = routineWithWorkouts.routine.name,
+                    text = routine.routine.name,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "${routineWithWorkouts.workouts.size} workouts",
+                    text = "${routine.workouts.size} workouts",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Box {
@@ -197,7 +198,7 @@ private fun RoutineListItem(
                 }
                 DropdownMenu(
                     expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false }
+                    onDismissRequest = { menuExpanded = false },
                 ) {
                     DropdownMenuItem(
                         text = { Text("Edit") },
@@ -205,7 +206,7 @@ private fun RoutineListItem(
                         onClick = {
                             menuExpanded = false
                             onEdit()
-                        }
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("Delete") },
@@ -213,13 +214,13 @@ private fun RoutineListItem(
                             Icon(
                                 Icons.Filled.Delete,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
+                                tint = MaterialTheme.colorScheme.error,
                             )
                         },
                         onClick = {
                             menuExpanded = false
                             onDelete()
-                        }
+                        },
                     )
                 }
             }

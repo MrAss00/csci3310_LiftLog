@@ -5,17 +5,24 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import edu.cuhk.csci3310.liftlog.data.local.dao.RoutineDao
+import edu.cuhk.csci3310.liftlog.data.local.dao.SessionDao
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineWorkoutEntity
+import edu.cuhk.csci3310.liftlog.data.local.entity.SessionEntity
 
 @Database(
-    entities = [RoutineEntity::class, RoutineWorkoutEntity::class],
-    version = 1,
-    exportSchema = false
+    version = 2,
+    exportSchema = false,
+    entities = [
+        RoutineEntity::class,
+        RoutineWorkoutEntity::class,
+        SessionEntity::class,
+    ],
 )
 abstract class LiftLogDatabase : RoomDatabase() {
 
     abstract fun routineDao(): RoutineDao
+    abstract fun sessionDao(): SessionDao
 
     companion object {
         @Volatile
@@ -26,8 +33,10 @@ abstract class LiftLogDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     LiftLogDatabase::class.java,
-                    "liftlog_database"
-                ).build()
+                    name = "liftlog",
+                )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .build()
                 INSTANCE = instance
                 instance
             }

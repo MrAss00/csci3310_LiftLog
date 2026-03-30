@@ -8,7 +8,7 @@ class ExerciseRepository(private val api: ExdbApi) {
     suspend fun searchExercises(
         query: String,
         offset: Int = 0,
-        limit: Int = 20
+        limit: Int = 20,
     ): Result<List<Exercise>> {
         return try {
             val response = api.searchExercises(
@@ -23,13 +23,13 @@ class ExerciseRepository(private val api: ExdbApi) {
         }
     }
 
-    suspend fun getExercisesByBodyPart(
+    suspend fun listExercisesByBodyPart(
         bodyPart: String,
         offset: Int = 0,
-        limit: Int = 20
+        limit: Int = 20,
     ): Result<List<Exercise>> {
         return try {
-            val response = api.getExercisesByBodyPart(
+            val response = api.listExercisesByBodyPart(
                 bodyPart = bodyPart,
                 offset = offset,
                 limit = limit,

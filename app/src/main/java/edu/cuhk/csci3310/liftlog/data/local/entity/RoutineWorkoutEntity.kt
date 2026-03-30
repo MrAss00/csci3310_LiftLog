@@ -12,10 +12,10 @@ import androidx.room.PrimaryKey
             entity = RoutineEntity::class,
             parentColumns = ["id"],
             childColumns = ["routineId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index(value = ["routineId"])]
+    indices = [Index(value = ["routineId"])],
 )
 data class RoutineWorkoutEntity(
     @PrimaryKey(autoGenerate = true)
@@ -28,5 +28,5 @@ data class RoutineWorkoutEntity(
     val reps: Int,
     val weight: Double,
     val interval: Int,
-    val index: Int
+    val index: Int,
 )

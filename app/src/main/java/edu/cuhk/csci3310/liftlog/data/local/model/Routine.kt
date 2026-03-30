@@ -5,11 +5,13 @@ import androidx.room.Relation
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineWorkoutEntity
 
-data class RoutineWithWorkouts(
+data class Routine(
     @Embedded val routine: RoutineEntity,
     @Relation(
         parentColumn = "id",
-        entityColumn = "routineId"
+        entityColumn = "routineId",
     )
-    val workouts: List<RoutineWorkoutEntity>
+    val workouts: List<RoutineWorkout>,
 )
+
+typealias RoutineWorkout = RoutineWorkoutEntity

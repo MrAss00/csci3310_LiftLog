@@ -43,7 +43,7 @@ fun LiftLogApp() {
         startDestination = Screen.Stats.route,
         modifier = Modifier.fillMaxSize(),
         enterTransition = { EnterTransition.None },
-        exitTransition = { ExitTransition.None }
+        exitTransition = { ExitTransition.None },
     ) {
         composable(Screen.Stats.route) { StatsScreen(navController) }
         composable(Screen.Log.route) { LogScreen(navController) }
@@ -56,21 +56,21 @@ fun LiftLogApp() {
             },
             exitTransition = {
                 slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down)
-            }
+            },
         ) {
             RoutineEditScreen(navController)
         }
         composable(
-            "routine_edit/{routineId}",
+            "routine_edit/{id}",
             arguments = listOf(
-                navArgument("routineId") { type = NavType.LongType },
+                navArgument("id") { type = NavType.LongType },
             ),
             enterTransition = {
                 slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
             },
             exitTransition = {
                 slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
-            }
+            },
         ) {
             RoutineEditScreen(navController)
         }
