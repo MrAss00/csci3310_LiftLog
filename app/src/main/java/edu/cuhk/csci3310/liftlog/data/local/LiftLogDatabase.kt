@@ -10,9 +10,6 @@ import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineWorkoutEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.SessionEntity
 
-import edu.cuhk.csci3310.liftlog.data.local.dao.WorkoutDao
-import edu.cuhk.csci3310.liftlog.data.local.entity.WorkoutEntity
-
 @Database(
     version = 6,
     exportSchema = false,
