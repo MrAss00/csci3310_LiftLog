@@ -2,9 +2,10 @@ package edu.cuhk.csci3310.liftlog.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -25,8 +26,20 @@ fun SettingsScreen(
     var dailyInput by remember { mutableStateOf(dailyGoal.toString()) }
 
     Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("Settings") }) }
-    ) { innerPadding ->
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
+        }
+    ){ innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -34,7 +47,7 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Monthly Goal
+            //monthly goal
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Monthly Goal (kg)", style = MaterialTheme.typography.titleMedium)
@@ -51,7 +64,7 @@ fun SettingsScreen(
                 }
             }
 
-            // Daily Goal for Today
+            //daily goal
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Daily Goal for Today (kg)", style = MaterialTheme.typography.titleMedium)

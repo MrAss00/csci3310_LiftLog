@@ -46,15 +46,16 @@ fun StatsScreen(
     navController: NavHostController,
     viewModel: StatsViewModel = viewModel(),
 ) {
-    // ← These lines collect the real values from ViewModel
+
     val monthlyVolume by viewModel.monthlyVolume.collectAsState(initial = 20L)
     val monthlyGoal by viewModel.monthlyGoal.collectAsState(initial = 100000L)
     val monthlyProgress by viewModel.monthlyProgress.collectAsState(initial = 20f)
     val monthlySessions by viewModel.monthlySessions.collectAsState(initial = 0)
     val monthlyTotalSets by viewModel.monthlyTotalSets.collectAsState(initial = 0)
-
+    val dailyGoal by viewModel.dailyGoal.collectAsState()
     LaunchedEffect(Unit) {
-        viewModel.refreshMonthlyGoal()   // forces re-read from SharedPreferences
+        viewModel.refreshMonthlyGoal()
+        viewModel.refreshDailyGoal() // both functions force stat screen to read the variavles again
     }
 
     LiftLogTabScaffold(navController, title = "Summary") { innerPadding ->
@@ -67,7 +68,7 @@ fun StatsScreen(
         ) {
             item { MonthlyGoalCard(monthlyVolume, monthlyGoal, monthlyProgress) }
             item { DailyStatsRow(monthlySessions,monthlyTotalSets) }   // still hardcoded for now
-            item { TodayGoalCards() }
+            item { TodayGoalCards(dailyGoal = dailyGoal) }
             item { WeeklyGoalsSection() }
         }
     }
@@ -178,35 +179,49 @@ private fun StatSmallCard(
 }
 
 @Composable
-private fun TodayGoalCards() {
+private fun TodayGoalCards(dailyGoal:Long,todayVolume: Long =0) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
+        Card(
+            modifier = Modifier
+                .weight(1f),
+            shape = RoundedCornerShape(12.dp)
+        ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text("Today's goal", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "1,420 kg",
+                    text = "${dailyGoal.formatWithCommas()} kg",
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
-        Card(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
+        Card(
+            modifier = Modifier
+                .weight(1f),
+            shape = RoundedCornerShape(12.dp)
+        ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text("Remaining", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "862 kg",
+                    text = "0 kg",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
