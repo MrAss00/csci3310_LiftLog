@@ -21,8 +21,8 @@ data class ExerciseSearchViewState(
     val exercises: List<Exercise> = emptyList(),
     val bodyParts: List<String> = emptyList(),
     val bodyPart: String? = null,
-    val loading: Boolean = false,
-    val more: Boolean = true,
+    val isLoading: Boolean = false,
+    val hasMore: Boolean = true,
     val message: String? = null,
 )
 
@@ -59,33 +59,33 @@ class ExerciseSearchViewModel : ViewModel() {
     }
 
     fun loadMoreExercises() {
-        if (_state.value.more) {
+        if (_state.value.hasMore) {
             loadExercises(append = true)
         }
     }
 
     private fun loadExercises(append: Boolean = false) {
-        if (_state.value.loading) return
+        if (_state.value.isLoading) return
 
         val current = if (append) offset else 0
 
         viewModelScope.launch {
-            _state.update { it.copy(loading = true, message = null) }
+            _state.update { it.copy(isLoading = true, message = null) }
 
             val result = fetchExercises(offset = current)
             result.onSuccess { exercises ->
                 _state.update {
                     it.copy(
                         exercises = if (append) it.exercises + exercises else exercises,
-                        loading = false,
-                        more = exercises.size >= size,
+                        isLoading = false,
+                        hasMore = exercises.size >= size,
                     )
                 }
                 offset = exercises.size
             }.onFailure { error ->
                 _state.update {
                     it.copy(
-                        loading = false,
+                        isLoading = false,
                         message = error.message ?: "failed to load exercises",
                     )
                 }

@@ -22,6 +22,7 @@ import edu.cuhk.csci3310.liftlog.ui.screens.LogScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.RoutineEditScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.RoutinesScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.SettingsScreen
+import edu.cuhk.csci3310.liftlog.ui.screens.SpotterScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.StatsScreen
 import edu.cuhk.csci3310.liftlog.ui.theme.LiftLogTheme
 
@@ -53,7 +54,7 @@ fun LiftLogApp() {
         composable(Screen.Stats.route) { StatsScreen(navController) }
         composable(Screen.Log.route) { LogScreen(navController) }
         composable(Screen.Routines.route) { RoutinesScreen(navController) }
-        composable(Screen.Settings.route) {SettingsScreen(navController) }
+        composable(Screen.Settings.route) { SettingsScreen(navController) }
 
         composable(
             "routine_create",
@@ -79,6 +80,20 @@ fun LiftLogApp() {
             },
         ) {
             RoutineEditScreen(navController)
+        }
+        composable(
+            "spotter/{routineId}",
+            arguments = listOf(
+                navArgument("routineId") { type = NavType.LongType },
+            ),
+            enterTransition = {
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up)
+            },
+            exitTransition = {
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down)
+            },
+        ) {
+            SpotterScreen(navController)
         }
     }
 }

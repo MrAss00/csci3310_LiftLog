@@ -39,7 +39,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _monthlyProgress = MutableStateFlow(0f)
     val monthlyProgress: StateFlow<Float> = _monthlyProgress.asStateFlow()
 
-    // Refresh goal when returning from Settings
+    // refresh goal when returning from settings
     fun refreshMonthlyGoal() {
         _monthlyGoal.value = prefs.getLong("monthly_goal_kg", 100_000L)
     }
@@ -55,7 +55,7 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             combine(
                 repository.getMonthlyVolume(startOfMonth),
                 repository.getMonthlySessionCount(startOfMonth),
-                repository.getMonthlyTotalSets(startOfMonth)
+                repository.getMonthlyTotalSets(startOfMonth),
             ) { volume, sessions, sets ->
                 _monthlyVolume.value = volume
                 _monthlySessions.value = sessions

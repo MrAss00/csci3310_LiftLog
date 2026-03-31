@@ -141,13 +141,13 @@ fun ExerciseSearchDialog(
                         val lastVisibleIndex =
                             listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
                         val totalItemsCount = listState.layoutInfo.totalItemsCount
-                        lastVisibleIndex >= totalItemsCount - 5 && !state.loading && state.more && totalItemsCount > 0
+                        lastVisibleIndex >= totalItemsCount - 5 && !state.isLoading && state.hasMore && totalItemsCount > 0
                     }
                 }
                 LaunchedEffect(shouldLoadMore) {
                     if (shouldLoadMore) viewModel.loadMoreExercises()
                 }
-                if (state.exercises.isEmpty() && !state.loading) {
+                if (state.exercises.isEmpty() && !state.isLoading) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -174,7 +174,7 @@ fun ExerciseSearchDialog(
                                 onClick = { onExerciseSelected(exercise) },
                             )
                         }
-                        if (state.loading) {
+                        if (state.isLoading) {
                             item {
                                 Box(
                                     modifier = Modifier

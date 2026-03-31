@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,8 +70,8 @@ fun RoutineEditScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // navigate back on successful save
-    LaunchedEffect(state.saved) {
-        if (state.saved) navController.popBackStack()
+    LaunchedEffect(state.isSaved) {
+        if (state.isSaved) navController.popBackStack()
     }
 
     // show error message
@@ -86,108 +85,92 @@ fun RoutineEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (viewModel.editing) "Edit Routine" else "New Routine") },
+                title = { Text(if (viewModel.isEditing) "Edit Routine" else "New Routine") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            if (viewModel.editing) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Close,
+                            if (viewModel.isEditing) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Close,
                             contentDescription = "Back",
                         )
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = viewModel::save,
-                        enabled = !state.saving,
-                    ) {
-                        if (state.saving) CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                        else Icon(Icons.Filled.Check, contentDescription = "Save")
+                    IconButton(onClick = viewModel::save) {
+                        Icon(Icons.Filled.Check, contentDescription = "Save")
                     }
                 },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        if (state.loading) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                CircularProgressIndicator()
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item {
+                OutlinedTextField(
+                    value = state.name,
+                    onValueChange = viewModel::setName,
+                    label = { Text("Routine Name") },
+                    placeholder = { Text("e.g. Push Day") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                item {
-                    OutlinedTextField(
-                        value = state.name,
-                        onValueChange = viewModel::setName,
-                        label = { Text("Routine Name") },
-                        placeholder = { Text("e.g. Push Day") },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Workouts (${state.workouts.size})",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
                     )
                 }
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "Workouts (${state.workouts.size})",
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-                itemsIndexed(
-                    state.workouts,
-                    key = { index, w -> "${w.exerciseId}_$index" },
-                ) { index, workout ->
-                    WorkoutItem(
-                        workout = workout,
-                        index = index,
-                        isFirst = index == 0,
-                        isLast = index == state.workouts.size - 1,
-                        onUpdate = { viewModel.updateWorkout(index, it) },
-                        onRemove = { viewModel.removeWorkout(index) },
-                        onMoveUp = {
-                            if (index > 0) {
-                                viewModel.moveWorkout(index, index - 1)
-                            }
-                        },
-                        onMoveDown = {
-                            if (index < state.workouts.size - 1) {
-                                viewModel.moveWorkout(index, index + 1)
-                            }
-                        },
-                    )
-                }
-                item {
-                    Button(
-                        onClick = { showExerciseSearch = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Add Workout")
-                    }
-                }
-                item { Spacer(Modifier.height(32.dp)) }
             }
+            itemsIndexed(
+                state.workouts,
+                key = { index, w -> "${w.exerciseId}_$index" },
+            ) { index, workout ->
+                WorkoutItem(
+                    workout = workout,
+                    index = index,
+                    isFirst = index == 0,
+                    isLast = index == state.workouts.size - 1,
+                    onUpdate = { viewModel.updateWorkout(index, it) },
+                    onRemove = { viewModel.removeWorkout(index) },
+                    onMoveUp = {
+                        if (index > 0) {
+                            viewModel.moveWorkout(index, index - 1)
+                        }
+                    },
+                    onMoveDown = {
+                        if (index < state.workouts.size - 1) {
+                            viewModel.moveWorkout(index, index + 1)
+                        }
+                    },
+                )
+            }
+            item {
+                Button(
+                    onClick = { showExerciseSearch = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add Workout")
+                }
+            }
+            item { Spacer(Modifier.height(32.dp)) }
         }
     }
 
