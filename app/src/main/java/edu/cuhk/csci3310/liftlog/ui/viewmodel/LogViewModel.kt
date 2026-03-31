@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -49,19 +50,20 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
 
         // fetch sessions when selected date changes
         viewModelScope.launch {
-            _state.map { it.selectedDate }.distinctUntilChanged().collect { date ->
+            _state.map { it.selectedDate }.distinctUntilChanged().flatMapLatest { date ->
                 val startOfDay =
                     date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
                 val endOfDay =
                     date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
                 sessionRepository.getSessionsForDay(startOfDay, endOfDay)
-                    .collect { sessions -> _state.update { it.copy(sessions = sessions) } }
+            }.collect { sessions ->
+                _state.update { it.copy(sessions = sessions) }
             }
         }
 
         // fetch days with sessions when current month changes
         viewModelScope.launch {
-            _state.map { it.currentMonth }.distinctUntilChanged().collect { month ->
+            _state.map { it.currentMonth }.distinctUntilChanged().flatMapLatest { month ->
                 val startOfMonth =
                     month.atDay(1).atStartOfDay(ZoneId.systemDefault())
                         .toInstant().toEpochMilli()
@@ -69,14 +71,13 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
                     month.plusMonths(1).atDay(1).atStartOfDay(ZoneId.systemDefault())
                         .toInstant().toEpochMilli()
                 sessionRepository.getSessionTimestampsInRange(startOfMonth, endOfMonth)
-                    .collect { timestamps ->
-                        val days = timestamps.map { timestamp ->
-                            Instant.ofEpochMilli(timestamp)
-                                .atZone(ZoneId.systemDefault())
-                                .dayOfMonth
-                        }
-                        _state.update { it.copy(dottedDays = days.toSet()) }
-                    }
+            }.collect { timestamps ->
+                val days = timestamps.map { timestamp ->
+                    Instant.ofEpochMilli(timestamp)
+                        .atZone(ZoneId.systemDefault())
+                        .dayOfMonth
+                }
+                _state.update { it.copy(dottedDays = days.toSet()) }
             }
         }
 
@@ -92,10 +93,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         _state.update {
             it.copy(
                 selectedDate = date,
-                // update current month if the selected date is in a different month
-                currentMonth = if (YearMonth.from(date) != it.currentMonth)
-                    YearMonth.from(date)
-                else it.currentMonth,
+                currentMonth = YearMonth.from(date),
             )
         }
     }
