@@ -22,6 +22,7 @@ import edu.cuhk.csci3310.liftlog.ui.screens.LogScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.RoutineEditScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.RoutinesScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.SettingsScreen
+import edu.cuhk.csci3310.liftlog.ui.screens.SpotterScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.StatsScreen
 import edu.cuhk.csci3310.liftlog.ui.theme.LiftLogTheme
 
@@ -79,6 +80,20 @@ fun LiftLogApp() {
             },
         ) {
             RoutineEditScreen(navController)
+        }
+        composable(
+            "spotter/{routineId}",
+            arguments = listOf(
+                navArgument("routineId") { type = NavType.LongType },
+            ),
+            enterTransition = {
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up)
+            },
+            exitTransition = {
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down)
+            },
+        ) {
+            SpotterScreen(navController)
         }
     }
 }

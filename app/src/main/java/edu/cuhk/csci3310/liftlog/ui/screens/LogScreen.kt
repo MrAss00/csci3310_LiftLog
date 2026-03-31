@@ -160,7 +160,7 @@ fun LogScreen(
                 routines = state.routines,
                 onRoutineSelected = { routine ->
                     showRoutinePickerDialog = false
-                    // TODO: navigate to spotter screen
+                    navController.navigate("spotter/${routine.routine.id}")
                 },
                 onDismiss = { showRoutinePickerDialog = false },
             )
