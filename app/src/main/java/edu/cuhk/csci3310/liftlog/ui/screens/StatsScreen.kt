@@ -57,7 +57,7 @@ fun StatsScreen(
         viewModel.refreshMonthlyGoal()   // forces re-read from SharedPreferences
     }
 
-    LiftLogTabScaffold(navController, title = "Stats") { innerPadding ->
+    LiftLogTabScaffold(navController, title = "Summary") { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()

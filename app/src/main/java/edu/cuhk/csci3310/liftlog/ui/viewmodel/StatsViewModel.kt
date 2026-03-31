@@ -39,9 +39,17 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _monthlyProgress = MutableStateFlow(0f)
     val monthlyProgress: StateFlow<Float> = _monthlyProgress.asStateFlow()
 
+    // for updating daily goal
+    private val _dailyGoal = MutableStateFlow(prefs.getLong("daily_goal_kg", 2000L))
+    val dailyGoal: StateFlow<Long> = _dailyGoal.asStateFlow()
+
     // refresh goal when returning from settings
     fun refreshMonthlyGoal() {
-        _monthlyGoal.value = prefs.getLong("monthly_goal_kg", 100_000L)
+        _monthlyGoal.value = prefs.getLong("monthly_goal_kg", 100L)
+    }
+
+    fun refreshDailyGoal() {
+        _dailyGoal.value = prefs.getLong("daily_goal_kg", 20L)
     }
 
     init {

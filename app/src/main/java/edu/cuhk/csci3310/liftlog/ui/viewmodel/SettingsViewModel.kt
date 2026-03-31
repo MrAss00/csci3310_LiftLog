@@ -14,8 +14,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val prefs = application.getSharedPreferences("liftlog_prefs", Context.MODE_PRIVATE)
 
-    private val _monthlyGoal = MutableStateFlow(prefs.getLong("monthly_goal_kg", 100_000L))
+    private val _monthlyGoal = MutableStateFlow(prefs.getLong("monthly_goal_kg", 100L))
     val monthlyGoal: StateFlow<Long> = _monthlyGoal.asStateFlow()
+
+    private val _dailyGoal = MutableStateFlow(prefs.getLong("daily_goal_kg", 20L))
+    val dailyGoal: StateFlow<Long> = _dailyGoal.asStateFlow()
 
     fun updateMonthlyGoal(newGoal: Long) {
         viewModelScope.launch {
@@ -23,4 +26,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             prefs.edit { putLong("monthly_goal_kg", newGoal) }
         }
     }
+
+    fun updateDailyGoal(newGoal: Long) {
+        _dailyGoal.value = newGoal
+        prefs.edit { putLong("daily_goal_kg", newGoal) }
+    }
+
 }
