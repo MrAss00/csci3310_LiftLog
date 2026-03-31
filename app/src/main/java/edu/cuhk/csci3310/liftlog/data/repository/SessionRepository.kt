@@ -36,4 +36,7 @@ class SessionRepository(private val dao: SessionDao) {
 
     fun getMonthlyTotalSets(startOfMonth: Long): Flow<Int> =
         dao.getMonthlyTotalSets(startOfMonth)
+
+    fun getTodayVolume(startOfDay: Long, endOfDay: Long): Flow<Long> =
+        dao.getTodayVolume(startOfDay, endOfDay)
 }

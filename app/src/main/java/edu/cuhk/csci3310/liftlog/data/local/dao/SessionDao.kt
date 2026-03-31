@@ -41,4 +41,7 @@ interface SessionDao {
 
     @Query(""" SELECT COALESCE(SUM(setsCount), 0) FROM sessions WHERE startTime >= :startOfMonth """)
     fun getMonthlyTotalSets(startOfMonth: Long): Flow<Int>
+
+    @Query(""" SELECT COALESCE(SUM(totalVolume), 0) FROM sessions WHERE startTime >= :startOfDay AND startTime < :endOfDay """)
+    fun getTodayVolume(startOfDay: Long, endOfDay: Long): Flow<Long>
 }

@@ -177,11 +177,27 @@ class SpotterViewModel(
 
         viewModelScope.launch {
             val routine = _state.value.routine ?: return@launch
+
+            // for calculate the totalvolume done in a session
+            var totalVolume = 0L
+            var totalSets = 0
+            // parse total volume
+            routine.workouts.forEach { workout ->
+                val sets = workout.sets
+                val reps = workout.reps
+                val weight = workout.weight
+                totalSets += sets
+                totalVolume += (weight * reps * sets).toLong()
+            }
+
+
             val session = SessionEntity(
                 routineId = routine.routine.id,
                 routineName = routine.routine.name,
                 startTime = _state.value.startTime,
                 endTime = System.currentTimeMillis(),
+                totalVolume = totalVolume,
+                setsCount = totalSets
             )
             sessionRepository.insertSession(session)
             _state.update { it.copy(isSaved = true) }

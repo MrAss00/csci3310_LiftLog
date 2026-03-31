@@ -43,13 +43,40 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _dailyGoal = MutableStateFlow(prefs.getLong("daily_goal_kg", 2000L))
     val dailyGoal: StateFlow<Long> = _dailyGoal.asStateFlow()
 
+    // for today goal
+    private val _todayVolume = MutableStateFlow(0L)
+    val todayVolume: StateFlow<Long> = _todayVolume.asStateFlow()
+
     // refresh goal when returning from settings
     fun refreshMonthlyGoal() {
         _monthlyGoal.value = prefs.getLong("monthly_goal_kg", 100L)
+        // to update progress for circular progress indicator
+        val goal = _monthlyGoal.value
+        _monthlyProgress.value = if (goal > 0) {
+            (_monthlyVolume.value.toFloat() / goal.toFloat()).coerceAtMost(1f)
+        } else 0f
     }
 
     fun refreshDailyGoal() {
         _dailyGoal.value = prefs.getLong("daily_goal_kg", 20L)
+    }
+
+    fun refreshTodayVolume() {
+        viewModelScope.launch {
+            val startOfDay = LocalDate.now()
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+
+            val endOfDay = LocalDate.now().plusDays(1)
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+
+            repository.getTodayVolume(startOfDay, endOfDay).collect { volume ->
+                _todayVolume.value = volume
+            }
+        }
     }
 
     init {

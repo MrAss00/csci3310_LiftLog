@@ -53,9 +53,12 @@ fun StatsScreen(
     val monthlySessions by viewModel.monthlySessions.collectAsState(initial = 0)
     val monthlyTotalSets by viewModel.monthlyTotalSets.collectAsState(initial = 0)
     val dailyGoal by viewModel.dailyGoal.collectAsState()
+    val todayVolume by viewModel.todayVolume.collectAsState()
+
     LaunchedEffect(Unit) {
         viewModel.refreshMonthlyGoal()
         viewModel.refreshDailyGoal() // both functions force stat screen to read the variavles again
+        viewModel.refreshTodayVolume()
     }
 
     LiftLogTabScaffold(navController, title = "Summary") { innerPadding ->
@@ -68,7 +71,7 @@ fun StatsScreen(
         ) {
             item { MonthlyGoalCard(monthlyVolume, monthlyGoal, monthlyProgress) }
             item { DailyStatsRow(monthlySessions,monthlyTotalSets) }   // still hardcoded for now
-            item { TodayGoalCards(dailyGoal = dailyGoal) }
+            item { TodayGoalCards(dailyGoal = dailyGoal, todayVolume) }
             item { WeeklyGoalsSection() }
         }
     }
@@ -179,7 +182,9 @@ private fun StatSmallCard(
 }
 
 @Composable
-private fun TodayGoalCards(dailyGoal:Long,todayVolume: Long =0) {
+private fun TodayGoalCards(dailyGoal:Long,TodayVolume : Long =0) {
+    val remaining = (dailyGoal - TodayVolume).coerceAtLeast(0L)
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -218,7 +223,7 @@ private fun TodayGoalCards(dailyGoal:Long,todayVolume: Long =0) {
             ) {
                 Text("Remaining", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    text = "0 kg",
+                    text = "${remaining.formatWithCommas()} kg",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
