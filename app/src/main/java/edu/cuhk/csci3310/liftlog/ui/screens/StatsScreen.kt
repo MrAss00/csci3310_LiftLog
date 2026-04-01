@@ -39,6 +39,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.StatsViewModel
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -47,9 +50,9 @@ fun StatsScreen(
     viewModel: StatsViewModel = viewModel(),
 ) {
 
-    val monthlyVolume by viewModel.monthlyVolume.collectAsState(initial = 20L)
-    val monthlyGoal by viewModel.monthlyGoal.collectAsState(initial = 100000L)
-    val monthlyProgress by viewModel.monthlyProgress.collectAsState(initial = 20f)
+    val monthlyVolume by viewModel.monthlyVolume.collectAsState(initial = 0L)
+    val monthlyGoal by viewModel.monthlyGoal.collectAsState(initial = 0L)
+    val monthlyProgress by viewModel.monthlyProgress.collectAsState(initial = 0f)
     val monthlySessions by viewModel.monthlySessions.collectAsState(initial = 0)
     val monthlyTotalSets by viewModel.monthlyTotalSets.collectAsState(initial = 0)
     val dailyGoal by viewModel.dailyGoal.collectAsState()
@@ -81,6 +84,11 @@ fun StatsScreen(
 // update monthlygoal
 @Composable
 private fun MonthlyGoalCard(volume: Long, goal: Long, progress: Float) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -107,14 +115,14 @@ private fun MonthlyGoalCard(volume: Long, goal: Long, progress: Float) {
 
             Box(contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
-                    progress = { progress },
+                    progress = { animatedProgress },
                     modifier = Modifier.size(80.dp),
                     color = MaterialTheme.colorScheme.primary,
                     strokeWidth = 8.dp,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
                 Text(
-                    text = "${(progress * 100).toInt()}%",
+                    text = "${(animatedProgress * 100).toInt()}%",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -236,7 +244,7 @@ private fun TodayGoalCards(dailyGoal:Long,TodayVolume : Long =0) {
 
 @Composable
 private fun WeeklyGoalsSection(
-    progressValues: List<Float>   // ← Now accepts real values
+    progressValues: List<Float>
 ) {
     val completedCount = progressValues.count { it >= 1.0f }
 
@@ -270,19 +278,24 @@ private fun WeeklyGoalsSection(
                 val days = listOf("S", "M", "T", "W", "T", "F", "S")
 
                 days.forEachIndexed { index, day ->
-                    val progress = progressValues[index]
+                    val targetProgress = progressValues[index]
+
+                    val animatedProgress by animateFloatAsState(
+                        targetValue = targetProgress,
+                        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+                    )
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
-                                progress = { progress },
+                                progress = { animatedProgress },
                                 modifier = Modifier.size(36.dp),
                                 color = Color(0xFF4CAF50),
                                 strokeWidth = 4.dp,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
 
-                            if (progress >= 1f) {
+                            if (targetProgress >= 1f) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
@@ -291,7 +304,7 @@ private fun WeeklyGoalsSection(
                                 )
                             } else {
                                 Text(
-                                    text = "${(progress * 100).toInt()}%",
+                                    text = "${(targetProgress * 100).toInt()}%",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
