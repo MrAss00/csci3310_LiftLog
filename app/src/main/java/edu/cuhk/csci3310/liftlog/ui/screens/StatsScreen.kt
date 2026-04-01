@@ -59,6 +59,7 @@ fun StatsScreen(
         viewModel.refreshMonthlyGoal()
         viewModel.refreshDailyGoal() // both functions force stat screen to read the variavles again
         viewModel.refreshTodayVolume()
+        viewModel.refreshWeeklyProgress()
     }
 
     LiftLogTabScaffold(navController, title = "Summary") { innerPadding ->
@@ -72,7 +73,7 @@ fun StatsScreen(
             item { MonthlyGoalCard(monthlyVolume, monthlyGoal, monthlyProgress) }
             item { DailyStatsRow(monthlySessions,monthlyTotalSets) }   // still hardcoded for now
             item { TodayGoalCards(dailyGoal = dailyGoal, todayVolume) }
-            item { WeeklyGoalsSection() }
+            item { WeeklyGoalsSection(progressValues = viewModel.weeklyProgress.collectAsState().value) }
         }
     }
 }
@@ -234,53 +235,40 @@ private fun TodayGoalCards(dailyGoal:Long,TodayVolume : Long =0) {
 }
 
 @Composable
-private fun WeeklyGoalsSection() {
+private fun WeeklyGoalsSection(
+    progressValues: List<Float>   // ← Now accepts real values
+) {
+    val completedCount = progressValues.count { it >= 1.0f }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Weekly goals",
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                Text("Weekly goals", style = MaterialTheme.typography.titleMedium)
                 Text(
                     text = "Check reports →",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
             Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Your activity for last 7 days",
-                style = MaterialTheme.typography.bodySmall,
-            )
+            Text("Your activity for last 7 days", style = MaterialTheme.typography.bodySmall)
 
             Spacer(Modifier.height(12.dp))
 
-            var completedCount = 0
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 val days = listOf("S", "M", "T", "W", "T", "F", "S")
 
-                val progressValues = listOf(
-                    1.0f,
-                    1.0f,
-                    0.8f,
-                    0.5f,
-                    1.0f,
-                    0.3f,
-                    0.0f
-                )
-                completedCount = progressValues.count { it >= 1.0f }
                 days.forEachIndexed { index, day ->
                     val progress = progressValues[index]
 
@@ -289,19 +277,24 @@ private fun WeeklyGoalsSection() {
                             CircularProgressIndicator(
                                 progress = { progress },
                                 modifier = Modifier.size(36.dp),
-                                color = if (progress >= 1f) Color(0xFF4CAF50)
-                                else MaterialTheme.colorScheme.primary,
+                                color = Color(0xFF4CAF50),
                                 strokeWidth = 4.dp,
-                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
 
-                            // Show checkmark only when fully completed
                             if (progress >= 1f) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
                                     tint = Color(0xFF4CAF50),
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            } else {
+                                Text(
+                                    text = "${(progress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -310,22 +303,22 @@ private fun WeeklyGoalsSection() {
                         Text(
                             text = day,
                             style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
             }
 
             Spacer(Modifier.height(8.dp))
+
             Text(
-                text = "${completedCount}/7 Completed",
+                text = "$completedCount/7 Completed",
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFF4CAF50),
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
-
 
 private fun Long.formatWithCommas(): String = "%,d".format(this)

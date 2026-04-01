@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
@@ -47,6 +48,10 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     private val _todayVolume = MutableStateFlow(0L)
     val todayVolume: StateFlow<Long> = _todayVolume.asStateFlow()
 
+    // for weekly goal card
+    private val _weeklyProgress = MutableStateFlow<List<Float>>(List(7) { 0f })
+    val weeklyProgress: StateFlow<List<Float>> = _weeklyProgress.asStateFlow()
+
     // refresh goal when returning from settings
     fun refreshMonthlyGoal() {
         _monthlyGoal.value = prefs.getLong("monthly_goal_kg", 100L)
@@ -76,6 +81,42 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
             repository.getTodayVolume(startOfDay, endOfDay).collect { volume ->
                 _todayVolume.value = volume
             }
+        }
+    }
+
+    //refresh weekly goal
+    fun refreshWeeklyProgress() {
+        viewModelScope.launch {
+            val today = LocalDate.now()
+            val progressList = mutableListOf<Float>()
+
+            // build a list from sat to sun
+            val daysSinceSunday = today.dayOfWeek.value % 7
+            val sunday = today.minusDays(daysSinceSunday.toLong())
+
+            for (i in 0..6) {
+                val date = sunday.plusDays(i.toLong())
+
+                val startOfDay = date.atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+
+                val endOfDay = date.plusDays(1)
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+
+                val dailyVolume = repository.getTodayVolume(startOfDay, endOfDay).firstOrNull() ?: 0L
+                val dailyGoal = _dailyGoal.value
+
+                val progress = if (dailyGoal > 0) {
+                    (dailyVolume.toFloat() / dailyGoal.toFloat()).coerceAtMost(1f)
+                } else 0f
+
+                progressList.add(progress)
+            }
+
+            _weeklyProgress.value = progressList
         }
     }
 
