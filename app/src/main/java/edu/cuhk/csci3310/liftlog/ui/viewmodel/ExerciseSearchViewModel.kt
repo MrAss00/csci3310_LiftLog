@@ -1,8 +1,8 @@
 package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import edu.cuhk.csci3310.liftlog.data.remote.RetrofitInstance
 import edu.cuhk.csci3310.liftlog.data.remote.model.Exercise
 import edu.cuhk.csci3310.liftlog.data.repository.ExerciseRepository
 import kotlinx.coroutines.FlowPreview
@@ -27,9 +27,9 @@ data class ExerciseSearchViewState(
 )
 
 @OptIn(FlowPreview::class)
-class ExerciseSearchViewModel : ViewModel() {
+class ExerciseSearchViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = ExerciseRepository(RetrofitInstance.api)
+    private val repository = ExerciseRepository(application)
 
     private val _state = MutableStateFlow(ExerciseSearchViewState())
     val state: StateFlow<ExerciseSearchViewState> = _state.asStateFlow()
@@ -93,7 +93,7 @@ class ExerciseSearchViewModel : ViewModel() {
         }
     }
 
-    private suspend fun fetchExercises(offset: Int): Result<List<Exercise>> {
+    private fun fetchExercises(offset: Int): Result<List<Exercise>> {
         val state = _state.value
         return if (state.bodyPart != null) {
             repository.listExercisesByBodyPart(

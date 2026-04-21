@@ -1,51 +1,64 @@
 package edu.cuhk.csci3310.liftlog.data.repository
 
-import edu.cuhk.csci3310.liftlog.data.remote.ExdbApi
+import android.content.Context
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import edu.cuhk.csci3310.liftlog.data.remote.model.BodyPart
 import edu.cuhk.csci3310.liftlog.data.remote.model.Exercise
 
-class ExerciseRepository(private val api: ExdbApi) {
+class ExerciseRepository(private val context: Context) {
 
-    suspend fun searchExercises(
+    private val gson = Gson()
+
+    // lazily load and cache all exercises from assets on first access
+    private val allExercises: List<Exercise> by lazy {
+        val json = context.assets.open("exercises.json").bufferedReader().use { it.readText() }
+        val type = object : TypeToken<List<Exercise>>() {}.type
+        gson.fromJson(json, type)
+    }
+
+    private val allBodyParts: List<String> by lazy {
+        val json = context.assets.open("bodyparts.json").bufferedReader().use { it.readText() }
+        val type = object : TypeToken<List<BodyPart>>() {}.type
+        val parts: List<BodyPart> = gson.fromJson(json, type)
+        parts.map { it.name }
+    }
+
+    fun searchExercises(
         query: String,
         offset: Int = 0,
         limit: Int = 20,
     ): Result<List<Exercise>> {
         return try {
-            val response = api.searchExercises(
-                search = query,
-                offset = offset,
-                limit = limit,
-            )
-            if (response.success) Result.success(response.data)
-            else Result.failure(Exception("unsuccessful response"))
+            val filtered = if (query.isBlank()) {
+                allExercises
+            } else {
+                allExercises.filter { it.name.contains(query, ignoreCase = true) }
+            }
+            Result.success(filtered.drop(offset).take(limit))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun listExercisesByBodyPart(
+    fun listExercisesByBodyPart(
         bodyPart: String,
         offset: Int = 0,
         limit: Int = 20,
     ): Result<List<Exercise>> {
         return try {
-            val response = api.listExercisesByBodyPart(
-                bodyPart = bodyPart,
-                offset = offset,
-                limit = limit,
-            )
-            if (response.success) Result.success(response.data)
-            else Result.failure(Exception("unsuccessful response"))
+            val filtered = allExercises.filter { exercise ->
+                exercise.bodyParts.any { it.equals(bodyPart, ignoreCase = true) }
+            }
+            Result.success(filtered.drop(offset).take(limit))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun getBodyParts(): Result<List<String>> {
+    fun getBodyParts(): Result<List<String>> {
         return try {
-            val response = api.getBodyParts()
-            if (response.success) Result.success(response.data.map { it.name })
-            else Result.failure(Exception("unsuccessful response"))
+            Result.success(allBodyParts)
         } catch (e: Exception) {
             Result.failure(e)
         }
