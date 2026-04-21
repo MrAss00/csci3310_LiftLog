@@ -44,6 +44,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,10 +89,14 @@ fun LogScreen(
     var showRoutinePickerDialog by remember { mutableStateOf(false) }
     var sessionToDelete by remember { mutableStateOf<Session?>(null) }
 
-    // Auto-open the routine picker when launched from the widget, but only
-    // after routines have loaded and only if there are routines to pick from.
-    LaunchedEffect(openPicker, state.routines) {
-        if (openPicker && state.routines.isNotEmpty()) {
+    // Auto-open the routine picker when launched from the widget. Keyed on
+    // openPicker alone so this runs exactly once per screen instance. We wait
+    // for routines to finish loading before showing the dialog.
+    LaunchedEffect(openPicker) {
+        if (openPicker) {
+            snapshotFlow { state.routines }
+                .filter { it.isNotEmpty() }
+                .first()
             showRoutinePickerDialog = true
         }
     }

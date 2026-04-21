@@ -22,7 +22,7 @@ fun LiftLogBottomBar(navController: NavHostController) {
             NavigationBarItem(
                 icon = { Icon(imageVector = screen.icon, contentDescription = screen.label) },
                 label = { Text(text = screen.label) },
-                selected = currentRoute == screen.route,
+                selected = currentRoute == screen.route || currentRoute?.startsWith(screen.route + "?") == true,
                 onClick = {
                     navController.navigate(screen.route) {
                         // pop up to the start destination to avoid building up a large back stack
