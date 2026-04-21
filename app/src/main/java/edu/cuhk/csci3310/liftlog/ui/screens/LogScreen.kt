@@ -1,8 +1,6 @@
 package edu.cuhk.csci3310.liftlog.ui.screens
 
 import android.annotation.SuppressLint
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -44,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,16 +75,24 @@ import java.util.Locale
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun LogScreen(
     navController: NavHostController,
+    openPicker: Boolean = false,
     viewModel: LogViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
 
     var showRoutinePickerDialog by remember { mutableStateOf(false) }
     var sessionToDelete by remember { mutableStateOf<Session?>(null) }
+
+    // Auto-open the routine picker when launched from the widget, but only
+    // after routines have loaded and only if there are routines to pick from.
+    LaunchedEffect(openPicker, state.routines) {
+        if (openPicker && state.routines.isNotEmpty()) {
+            showRoutinePickerDialog = true
+        }
+    }
 
     LiftLogTabScaffold(navController, topBar = {}) { innerPadding ->
         Box(
@@ -191,7 +198,6 @@ fun LogScreen(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun CalendarView(
     dots: Set<Int>,
@@ -331,7 +337,6 @@ private fun CalendarDay(
 }
 
 @SuppressLint("DefaultLocale")
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun SessionCard(
     session: Session,

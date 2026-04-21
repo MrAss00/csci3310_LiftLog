@@ -22,6 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import edu.cuhk.csci3310.liftlog.service.RestTimerService
 import edu.cuhk.csci3310.liftlog.ui.navigation.Screen
 import edu.cuhk.csci3310.liftlog.ui.screens.LogScreen
@@ -55,9 +56,7 @@ class MainActivity : ComponentActivity() {
             RestTimerService.NOTIFICATION_CHANNEL_ID,
             "Rest Timer",
             NotificationManager.IMPORTANCE_LOW,  // silent; no sound/vibration
-        ).apply {
-            description = "Shows the rest period countdown during a workout session"
-        }
+        ).apply { description = "Shows the rest period countdown during a workout session." }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
@@ -87,7 +86,21 @@ fun LiftLogApp() {
         exitTransition = { ExitTransition.None },
     ) {
         composable(Screen.Stats.route) { StatsScreen(navController) }
-        composable(Screen.Log.route) { LogScreen(navController) }
+        composable(
+            route = "${Screen.Log.route}?openPicker={openPicker}",
+            arguments = listOf(
+                navArgument("openPicker") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "liftlog://log?openPicker={openPicker}" },
+            ),
+        ) { backStackEntry ->
+            val openPicker = backStackEntry.arguments?.getBoolean("openPicker") ?: false
+            LogScreen(navController, openPicker = openPicker)
+        }
         composable(Screen.Routines.route) { RoutinesScreen(navController) }
         composable(Screen.Settings.route) { SettingsScreen(navController) }
 

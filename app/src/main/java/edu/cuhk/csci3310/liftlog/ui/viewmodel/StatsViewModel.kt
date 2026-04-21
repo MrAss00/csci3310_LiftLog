@@ -2,8 +2,6 @@ package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import edu.cuhk.csci3310.liftlog.data.local.LiftLogDatabase
@@ -17,7 +15,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 
-@RequiresApi(Build.VERSION_CODES.O)
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = LiftLogDatabase.getInstance(application)

@@ -1,6 +1,8 @@
 package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
 import android.app.Application
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
@@ -210,13 +212,13 @@ class SpotterViewModel(
                     index < currentWorkoutIndex -> workout.sets
                     //current
                     index == currentWorkoutIndex -> {
-                        if (isSessionFullyCompleted){
+                        if (isSessionFullyCompleted) {
                             workout.sets
-                        }
-                        else{
+                        } else {
                             (currentSetInLastWorkout - 1).coerceAtLeast(0)
                         }
                     }
+
                     else -> 0
                 }
 
@@ -231,10 +233,28 @@ class SpotterViewModel(
                 startTime = _state.value.startTime,
                 endTime = System.currentTimeMillis(),
                 totalVolume = totalVolume,
-                setsCount = totalSets
+                setsCount = totalSets,
             )
             sessionRepository.insertSession(session)
             _state.update { it.copy(isSaved = true) }
+            requestWidgetUpdate()
+        }
+    }
+
+    private fun requestWidgetUpdate() {
+        val context = getApplication<Application>()
+        val manager = AppWidgetManager.getInstance(context)
+        val component = ComponentName(
+            context,
+            edu.cuhk.csci3310.liftlog.widget.LiftLogWidgetReceiver::class.java,
+        )
+        val ids = manager.getAppWidgetIds(component)
+        if (ids.isNotEmpty()) {
+            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+                setComponent(component)
+            }
+            context.sendBroadcast(intent)
         }
     }
 

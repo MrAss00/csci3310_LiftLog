@@ -1,8 +1,6 @@
 package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
 import android.app.Application
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import edu.cuhk.csci3310.liftlog.data.local.LiftLogDatabase
@@ -24,7 +22,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 
-@RequiresApi(Build.VERSION_CODES.O)
 data class LogViewState(
     val selectedDate: LocalDate = LocalDate.now(),
     val currentMonth: YearMonth = YearMonth.now(),
@@ -33,7 +30,6 @@ data class LogViewState(
     val routines: List<Routine> = emptyList(),
 )
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalCoroutinesApi::class)
 class LogViewModel(application: Application) : AndroidViewModel(application) {
 

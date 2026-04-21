@@ -1,7 +1,5 @@
 package edu.cuhk.csci3310.liftlog.ui.screens
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,7 +41,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun StatsScreen(
     navController: NavHostController,
