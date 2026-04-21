@@ -1,6 +1,8 @@
 package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
 import android.app.Application
+import android.content.Intent
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -10,8 +12,8 @@ import edu.cuhk.csci3310.liftlog.data.local.model.Routine
 import edu.cuhk.csci3310.liftlog.data.local.model.RoutineWorkout
 import edu.cuhk.csci3310.liftlog.data.repository.RoutineRepository
 import edu.cuhk.csci3310.liftlog.data.repository.SessionRepository
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import edu.cuhk.csci3310.liftlog.service.RestTimerService
+import edu.cuhk.csci3310.liftlog.service.RestTimerState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,14 +60,13 @@ class SpotterViewModel(
 
     private val routineId: Long = savedStateHandle.get<Long>("routineId") ?: -1L
 
-    private var timer: Job? = null
-
     init {
         val database = LiftLogDatabase.getInstance(application)
         routineRepository = RoutineRepository(database.routineDao())
         sessionRepository = SessionRepository(database.sessionDao())
 
         loadRoutine()
+        observeTimerState()
     }
 
     private fun loadRoutine() {
@@ -76,6 +77,28 @@ class SpotterViewModel(
                     routine = routine,
                     startTime = System.currentTimeMillis(),
                 )
+            }
+        }
+    }
+
+    /**
+     * Collects from [RestTimerState] and mirrors the values into [_state].
+     * Also reacts to the one-shot "finished" event to advance workout progress.
+     */
+    private fun observeTimerState() {
+        viewModelScope.launch {
+            RestTimerState.timeRemaining.collect { seconds ->
+                _state.update { it.copy(countdown = seconds) }
+            }
+        }
+        viewModelScope.launch {
+            RestTimerState.isRunning.collect { running ->
+                _state.update { it.copy(isTimerRunning = running) }
+            }
+        }
+        viewModelScope.launch {
+            RestTimerState.timerFinished.collect {
+                onTimerFinished()
             }
         }
     }
@@ -115,25 +138,20 @@ class SpotterViewModel(
     }
 
     private fun startTimer(durationSeconds: Int) {
-        timer?.cancel()
-        _state.update {
-            it.copy(
-                isTimerRunning = true,
-                countdown = durationSeconds,
-            )
+        val context = getApplication<Application>()
+        val intent = Intent(context, RestTimerService::class.java).apply {
+            action = RestTimerService.ACTION_START
+            putExtra(RestTimerService.EXTRA_DURATION_SECONDS, durationSeconds)
         }
-        timer = viewModelScope.launch {
-            while (_state.value.countdown > 0) {
-                delay(1000)
-                _state.update { it.copy(countdown = it.countdown - 1) }
-            }
-            onTimerFinished()
-        }
+        ContextCompat.startForegroundService(context, intent)
     }
 
     fun skipTimer() {
-        timer?.cancel()
-        onTimerFinished()
+        val context = getApplication<Application>()
+        val intent = Intent(context, RestTimerService::class.java).apply {
+            action = RestTimerService.ACTION_SKIP
+        }
+        ContextCompat.startForegroundService(context, intent)
     }
 
     private fun onTimerFinished() {
@@ -222,6 +240,12 @@ class SpotterViewModel(
 
     override fun onCleared() {
         super.onCleared()
-        timer?.cancel()
+        // Stop the foreground service when the ViewModel is destroyed (session ended or
+        // app process killed). This ensures no stale notification lingers.
+        val context = getApplication<Application>()
+        val intent = Intent(context, RestTimerService::class.java).apply {
+            action = RestTimerService.ACTION_STOP
+        }
+        context.startService(intent)
     }
 }
