@@ -9,14 +9,16 @@ import edu.cuhk.csci3310.liftlog.data.local.dao.SessionDao
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.RoutineWorkoutEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.SessionEntity
+import edu.cuhk.csci3310.liftlog.data.local.entity.SessionExerciseEntity
 
 @Database(
-    version = 6,
+    version = 7,
     exportSchema = false,
     entities = [
         RoutineEntity::class,
         RoutineWorkoutEntity::class,
         SessionEntity::class,
+        SessionExerciseEntity::class,
     ],
 )
 abstract class LiftLogDatabase : RoomDatabase() {

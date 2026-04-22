@@ -9,13 +9,51 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import edu.cuhk.csci3310.liftlog.MainActivity
 import edu.cuhk.csci3310.liftlog.R
+import edu.cuhk.csci3310.liftlog.service.RestTimerService.Companion.ACTION_SKIP
+import edu.cuhk.csci3310.liftlog.service.RestTimerService.Companion.ACTION_START
+import edu.cuhk.csci3310.liftlog.service.RestTimerService.Companion.ACTION_STOP
+import edu.cuhk.csci3310.liftlog.service.RestTimerService.Companion.EXTRA_DURATION_SECONDS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+/**
+ * Singleton bridge between [RestTimerService] and [SpotterViewModel].
+ *
+ * The service writes to these flows; the ViewModel reads from them.
+ * Using a singleton avoids the need to bind the service and keeps the
+ * existing StateFlow-based architecture intact.
+ */
+object RestTimerState {
+    private val _timeRemaining = MutableStateFlow(0)
+    val timeRemaining = _timeRemaining.asStateFlow()
+
+    private val _isRunning = MutableStateFlow(false)
+    val isRunning = _isRunning.asStateFlow()
+
+    private val _timerFinished = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val timerFinished = _timerFinished.asSharedFlow()
+
+    internal fun setTimeRemaining(seconds: Int) {
+        _timeRemaining.value = seconds
+    }
+
+    internal fun setRunning(running: Boolean) {
+        _isRunning.value = running
+    }
+
+    internal fun emitFinished() {
+        _timerFinished.tryEmit(Unit)
+    }
+}
 
 /**
  * Foreground service that drives the rest-period countdown timer.
@@ -33,8 +71,8 @@ class RestTimerService : Service() {
 
     companion object {
         const val ACTION_START = "edu.cuhk.csci3310.liftlog.REST_TIMER_START"
-        const val ACTION_STOP  = "edu.cuhk.csci3310.liftlog.REST_TIMER_STOP"
-        const val ACTION_SKIP  = "edu.cuhk.csci3310.liftlog.REST_TIMER_SKIP"
+        const val ACTION_STOP = "edu.cuhk.csci3310.liftlog.REST_TIMER_STOP"
+        const val ACTION_SKIP = "edu.cuhk.csci3310.liftlog.REST_TIMER_SKIP"
 
         const val EXTRA_DURATION_SECONDS = "duration_seconds"
 
@@ -42,13 +80,11 @@ class RestTimerService : Service() {
         private const val NOTIFICATION_ID = 1001
     }
 
-    private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-    private var countdownJob: Job? = null
-    private lateinit var notificationManager: NotificationManager
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-    // ------------------------------------------------------------------
-    // Lifecycle
-    // ------------------------------------------------------------------
+    private var job: Job? = null
+
+    private lateinit var notificationManager: NotificationManager
 
     override fun onCreate() {
         super.onCreate()
@@ -61,6 +97,7 @@ class RestTimerService : Service() {
                 val duration = intent.getIntExtra(EXTRA_DURATION_SECONDS, 0)
                 if (duration > 0) startCountdown(duration)
             }
+
             ACTION_STOP -> stopTimer()
             ACTION_SKIP -> skipTimer()
         }
@@ -71,17 +108,13 @@ class RestTimerService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        serviceScope.cancel()
+        scope.cancel()
         RestTimerState.setRunning(false)
         RestTimerState.setTimeRemaining(0)
     }
 
-    // ------------------------------------------------------------------
-    // Timer logic
-    // ------------------------------------------------------------------
-
     private fun startCountdown(durationSeconds: Int) {
-        countdownJob?.cancel()
+        job?.cancel()
 
         RestTimerState.setTimeRemaining(durationSeconds)
         RestTimerState.setRunning(true)
@@ -89,7 +122,7 @@ class RestTimerService : Service() {
         // Promote to foreground immediately so Android doesn't kill us
         startForeground(NOTIFICATION_ID, buildNotification(durationSeconds))
 
-        countdownJob = serviceScope.launch {
+        job = scope.launch {
             var remaining = durationSeconds
             while (remaining > 0) {
                 delay(1000)
@@ -102,12 +135,12 @@ class RestTimerService : Service() {
     }
 
     private fun skipTimer() {
-        countdownJob?.cancel()
+        job?.cancel()
         onCountdownFinished()
     }
 
     private fun stopTimer() {
-        countdownJob?.cancel()
+        job?.cancel()
         RestTimerState.setRunning(false)
         RestTimerState.setTimeRemaining(0)
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -122,10 +155,6 @@ class RestTimerService : Service() {
         stopSelf()
     }
 
-    // ------------------------------------------------------------------
-    // Notification helpers
-    // ------------------------------------------------------------------
-
     private fun buildNotification(secondsRemaining: Int): Notification {
         val tapIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -137,6 +166,12 @@ class RestTimerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        fun formatTime(totalSeconds: Int): String {
+            val minutes = totalSeconds / 60
+            val seconds = totalSeconds % 60
+            return "%d:%02d".format(minutes, seconds)
+        }
+
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Rest Timer")
@@ -147,11 +182,5 @@ class RestTimerService : Service() {
             .setSilent(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
-    }
-
-    private fun formatTime(totalSeconds: Int): String {
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        return "%d:%02d".format(minutes, seconds)
     }
 }

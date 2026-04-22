@@ -2,32 +2,27 @@ package edu.cuhk.csci3310.liftlog.data.repository
 
 import edu.cuhk.csci3310.liftlog.data.local.dao.SessionDao
 import edu.cuhk.csci3310.liftlog.data.local.entity.SessionEntity
+import edu.cuhk.csci3310.liftlog.data.local.entity.SessionExerciseEntity
+import edu.cuhk.csci3310.liftlog.data.local.model.Session
 import kotlinx.coroutines.flow.Flow
 
 class SessionRepository(private val dao: SessionDao) {
 
-    fun getSessionsForDay(startOfDay: Long, endOfDay: Long): Flow<List<SessionEntity>> =
+    fun getSessionsForDay(startOfDay: Long, endOfDay: Long): Flow<List<Session>> =
         dao.getSessionsForDay(startOfDay, endOfDay)
 
     fun getSessionTimestampsInRange(startOfMonth: Long, endOfMonth: Long): Flow<List<Long>> =
         dao.getSessionTimestampsInRange(startOfMonth, endOfMonth)
 
-    fun getSessionById(id: Long): Flow<SessionEntity?> =
-        dao.getSessionById(id)
-
-    fun getAllSessions(): Flow<List<SessionEntity>> =
-        dao.getAllSessions()
-
-    suspend fun insertSession(session: SessionEntity): Long =
+    fun insertSession(session: SessionEntity): Long =
         dao.insertSession(session)
 
-    suspend fun deleteSession(session: SessionEntity) =
-        dao.deleteSession(session)
+    fun insertSessionExercises(exercises: List<SessionExerciseEntity>) =
+        dao.insertSessionExercises(exercises)
 
-    suspend fun deleteSessionById(sessionId: Long) =
-        dao.deleteSessionById(sessionId)
+    fun deleteSession(session: Session) =
+        dao.deleteSession(session.session)
 
-    // for stat screen
     fun getMonthlyVolume(startOfMonth: Long): Flow<Long> =
         dao.getMonthlyVolume(startOfMonth)
 

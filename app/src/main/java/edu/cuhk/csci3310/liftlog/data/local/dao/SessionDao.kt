@@ -5,32 +5,41 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import edu.cuhk.csci3310.liftlog.data.local.entity.SessionEntity
+import edu.cuhk.csci3310.liftlog.data.local.entity.SessionExerciseEntity
+import edu.cuhk.csci3310.liftlog.data.local.model.Session
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SessionDao {
 
+    @Transaction
     @Query("SELECT * FROM sessions WHERE startTime >= :startOfDay AND startTime < :endOfDay ORDER BY startTime DESC")
-    fun getSessionsForDay(startOfDay: Long, endOfDay: Long): Flow<List<SessionEntity>>
+    fun getSessionsForDay(startOfDay: Long, endOfDay: Long): Flow<List<Session>>
 
     @Query("SELECT DISTINCT startTime FROM sessions WHERE startTime >= :startOfMonth AND startTime < :endOfMonth")
     fun getSessionTimestampsInRange(startOfMonth: Long, endOfMonth: Long): Flow<List<Long>>
 
+    @Transaction
     @Query("SELECT * FROM sessions WHERE id = :id")
-    fun getSessionById(id: Long): Flow<SessionEntity?>
+    fun getSessionById(id: Long): Flow<Session?>
 
+    @Transaction
     @Query("SELECT * FROM sessions ORDER BY startTime DESC")
-    fun getAllSessions(): Flow<List<SessionEntity>>
+    fun getAllSessions(): Flow<List<Session>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSession(session: SessionEntity): Long
+    fun insertSession(session: SessionEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertSessionExercises(exercises: List<SessionExerciseEntity>)
 
     @Delete
-    suspend fun deleteSession(session: SessionEntity)
+    fun deleteSession(session: SessionEntity)
 
     @Query("DELETE FROM sessions WHERE id = :sessionId")
-    suspend fun deleteSessionById(sessionId: Long)
+    fun deleteSessionById(sessionId: Long)
 
     // for stat screen analysis
     @Query("""SELECT COALESCE(SUM(totalVolume), 0) FROM sessions WHERE startTime >= :startOfMonth """)

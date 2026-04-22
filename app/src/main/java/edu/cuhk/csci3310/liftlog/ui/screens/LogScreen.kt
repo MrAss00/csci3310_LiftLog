@@ -146,9 +146,6 @@ fun LogScreen(
                         items(state.sessions, key = { it.id }) { session ->
                             SessionCard(
                                 session = session,
-                                routine = session.routineId?.let {
-                                    viewModel.getRoutine(it)
-                                },
                                 onDelete = { sessionToDelete = session },
                                 modifier = Modifier.padding(horizontal = 16.dp),
                             )
@@ -347,7 +344,6 @@ private fun CalendarDay(
 @Composable
 private fun SessionCard(
     session: Session,
-    routine: Routine?,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -415,20 +411,20 @@ private fun SessionCard(
             ) {
                 HorizontalDivider(thickness = Dp.Hairline)
                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                    if (routine != null && routine.workouts.isNotEmpty()) {
-                        routine.workouts
+                    if (session.exercises.isNotEmpty()) {
+                        session.exercises
                             .sortedBy { it.index }
-                            .forEach { workout ->
+                            .forEach { exercise ->
                                 ListItem(
                                     headlineContent = {
                                         Text(
-                                            text = workout.exerciseName.titlecase(),
+                                            text = exercise.exerciseName.titlecase(),
                                             style = MaterialTheme.typography.bodyMedium,
                                         )
                                     },
                                     supportingContent = {
                                         Text(
-                                            text = "${workout.sets} sets × ${workout.reps} reps @ ${workout.weight}kg",
+                                            text = "${exercise.sets} sets × ${exercise.reps} reps @ ${exercise.weight}kg",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
@@ -443,7 +439,7 @@ private fun SessionCard(
                         ListItem(
                             headlineContent = {
                                 Text(
-                                    text = "routine no longer exists",
+                                    text = "no exercise data recorded",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

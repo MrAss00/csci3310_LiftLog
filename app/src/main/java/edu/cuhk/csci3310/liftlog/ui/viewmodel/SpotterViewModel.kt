@@ -10,6 +10,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import edu.cuhk.csci3310.liftlog.data.local.LiftLogDatabase
 import edu.cuhk.csci3310.liftlog.data.local.entity.SessionEntity
+import edu.cuhk.csci3310.liftlog.data.local.entity.SessionExerciseEntity
 import edu.cuhk.csci3310.liftlog.data.local.model.Routine
 import edu.cuhk.csci3310.liftlog.data.local.model.RoutineWorkout
 import edu.cuhk.csci3310.liftlog.data.repository.RoutineRepository
@@ -235,7 +236,22 @@ class SpotterViewModel(
                 totalVolume = totalVolume,
                 setsCount = totalSets,
             )
-            sessionRepository.insertSession(session)
+            val sessionId = sessionRepository.insertSession(session)
+
+            val sessionExercises = routine.workouts
+                .sortedBy { it.index }
+                .mapIndexed { index, workout ->
+                    SessionExerciseEntity(
+                        sessionId = sessionId,
+                        exerciseName = workout.exerciseName,
+                        sets = workout.sets,
+                        reps = workout.reps,
+                        weight = workout.weight,
+                        index = index,
+                    )
+                }
+            sessionRepository.insertSessionExercises(sessionExercises)
+
             _state.update { it.copy(isSaved = true) }
             requestWidgetUpdate()
         }
