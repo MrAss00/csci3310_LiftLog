@@ -1,144 +1,99 @@
 package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import edu.cuhk.csci3310.liftlog.data.local.LiftLogDatabase
+import edu.cuhk.csci3310.liftlog.data.local.dao.ExerciseBest
+import edu.cuhk.csci3310.liftlog.data.local.dao.ExerciseSetCount
 import edu.cuhk.csci3310.liftlog.data.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
+
+data class HeatmapDay(val day: Long, val volume: Long)
+
+data class StatsViewState(
+    val monthlySessions: Int = 0,
+    val monthlyVolume: Long = 0L,
+    val monthlyTotalSets: Int = 0,
+    val averageSessionDuration: Long = 0L,
+    val heatmapData: List<HeatmapDay> = emptyList(),
+    val topExercises: List<ExerciseSetCount> = emptyList(),
+    val personalRecords: List<ExerciseBest> = emptyList(),
+)
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = LiftLogDatabase.getInstance(application)
     private val repository = SessionRepository(database.sessionDao())
 
-    private val prefs = application.getSharedPreferences("liftlog_prefs", Context.MODE_PRIVATE)
-
-    private val _monthlyGoal = MutableStateFlow(prefs.getLong("monthly_goal_kg", 100_000L))
-    val monthlyGoal: StateFlow<Long> = _monthlyGoal.asStateFlow()
-
-    private val _monthlyVolume = MutableStateFlow(0L)
-    val monthlyVolume: StateFlow<Long> = _monthlyVolume.asStateFlow()
-
-    private val _monthlySessions = MutableStateFlow(0)
-    val monthlySessions: StateFlow<Int> = _monthlySessions.asStateFlow()
-
-    private val _monthlyTotalSets = MutableStateFlow(0)
-    val monthlyTotalSets: StateFlow<Int> = _monthlyTotalSets.asStateFlow()
-
-    private val _monthlyProgress = MutableStateFlow(0f)
-    val monthlyProgress: StateFlow<Float> = _monthlyProgress.asStateFlow()
-
-    // for updating daily goal
-    private val _dailyGoal = MutableStateFlow(prefs.getLong("daily_goal_kg", 2000L))
-    val dailyGoal: StateFlow<Long> = _dailyGoal.asStateFlow()
-
-    // for today goal
-    private val _todayVolume = MutableStateFlow(0L)
-    val todayVolume: StateFlow<Long> = _todayVolume.asStateFlow()
-
-    // for weekly goal card
-    private val _weeklyProgress = MutableStateFlow<List<Float>>(List(7) { 0f })
-    val weeklyProgress: StateFlow<List<Float>> = _weeklyProgress.asStateFlow()
-
-    // refresh goal when returning from settings
-    fun refreshMonthlyGoal() {
-        _monthlyGoal.value = prefs.getLong("monthly_goal_kg", 100L)
-        // to update progress for circular progress indicator
-        val goal = _monthlyGoal.value
-        _monthlyProgress.value = if (goal > 0) {
-            (_monthlyVolume.value.toFloat() / goal.toFloat()).coerceAtMost(1f)
-        } else 0f
-    }
-
-    fun refreshDailyGoal() {
-        _dailyGoal.value = prefs.getLong("daily_goal_kg", 20L)
-    }
-
-    fun refreshTodayVolume() {
-        viewModelScope.launch {
-            val startOfDay = LocalDate.now()
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli()
-
-            val endOfDay = LocalDate.now().plusDays(1)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli()
-
-            repository.getTodayVolume(startOfDay, endOfDay).collect { volume ->
-                _todayVolume.value = volume
-            }
-        }
-    }
-
-    //refresh weekly goal
-    fun refreshWeeklyProgress() {
-        viewModelScope.launch {
-            val today = LocalDate.now()
-            val progressList = mutableListOf<Float>()
-
-            // build a list from sat to sun
-            val daysSinceSunday = today.dayOfWeek.value % 7
-            val sunday = today.minusDays(daysSinceSunday.toLong())
-
-            for (i in 0..6) {
-                val date = sunday.plusDays(i.toLong())
-
-                val startOfDay = date.atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli()
-
-                val endOfDay = date.plusDays(1)
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli()
-
-                val dailyVolume = repository.getTodayVolume(startOfDay, endOfDay).firstOrNull() ?: 0L
-                val dailyGoal = _dailyGoal.value
-
-                val progress = if (dailyGoal > 0) {
-                    (dailyVolume.toFloat() / dailyGoal.toFloat()).coerceAtMost(1f)
-                } else 0f
-
-                progressList.add(progress)
-            }
-
-            _weeklyProgress.value = progressList
-        }
-    }
+    private val _state = MutableStateFlow(StatsViewState())
+    val state: StateFlow<StatsViewState> = _state.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            val startOfMonth = LocalDate.now()
-                .withDayOfMonth(1)
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli()
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
 
+        val startOfMonth = today.withDayOfMonth(1)
+            .atStartOfDay(zone).toInstant().toEpochMilli()
+
+        val heatmapStart = today.minusDays(83)
+            .atStartOfDay(zone).toInstant().toEpochMilli()
+        val heatmapEnd = today.plusDays(1)
+            .atStartOfDay(zone).toInstant().toEpochMilli()
+
+        viewModelScope.launch {
             combine(
                 repository.getMonthlyVolume(startOfMonth),
                 repository.getMonthlySessionCount(startOfMonth),
                 repository.getMonthlyTotalSets(startOfMonth),
             ) { volume, sessions, sets ->
-                _monthlyVolume.value = volume
-                _monthlySessions.value = sessions
-                _monthlyTotalSets.value = sets
+                Triple(volume, sessions, sets)
+            }.collect { (volume, sessions, sets) ->
+                _state.update {
+                    it.copy(
+                        monthlyVolume = volume,
+                        monthlySessions = sessions,
+                        monthlyTotalSets = sets,
+                    )
+                }
+            }
+        }
 
-                val goal = _monthlyGoal.value
-                _monthlyProgress.value = if (goal > 0) {
-                    (volume.toFloat() / goal.toFloat()).coerceAtMost(1f)
-                } else 0f
-            }.collect { }
+        viewModelScope.launch {
+            repository.getAverageSessionDuration(startOfMonth).collect { ms ->
+                _state.update { it.copy(averageSessionDuration = ms) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getVolumePerDay(heatmapStart, heatmapEnd).collect { rows ->
+                val map = rows.associate { it.day to it.totalVolume }
+                val days = (0L..83L).map { offset ->
+                    val day = today.minusDays(83L - offset)
+                        .atStartOfDay(zone).toInstant().toEpochMilli()
+                    HeatmapDay(day, map[day] ?: 0L)
+                }
+                _state.update { it.copy(heatmapData = days) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getTopExercisesBySets().collect { list ->
+                _state.update { it.copy(topExercises = list) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.getPersonalRecords().collect { list ->
+                _state.update { it.copy(personalRecords = list) }
+            }
         }
     }
 }

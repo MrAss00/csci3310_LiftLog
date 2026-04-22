@@ -9,6 +9,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import edu.cuhk.csci3310.liftlog.MainActivity
 import edu.cuhk.csci3310.liftlog.R
+import edu.cuhk.csci3310.liftlog.toTimerString
 import edu.cuhk.csci3310.liftlog.service.RestTimerService.Companion.ACTION_SKIP
 import edu.cuhk.csci3310.liftlog.service.RestTimerService.Companion.ACTION_START
 import edu.cuhk.csci3310.liftlog.service.RestTimerService.Companion.ACTION_STOP
@@ -166,16 +167,10 @@ class RestTimerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        fun formatTime(totalSeconds: Int): String {
-            val minutes = totalSeconds / 60
-            val seconds = totalSeconds % 60
-            return "%d:%02d".format(minutes, seconds)
-        }
-
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Rest Timer")
-            .setContentText("Rest: ${formatTime(secondsRemaining)} remaining")
+            .setContentText("Rest: ${secondsRemaining.toTimerString()} remaining")
             .setContentIntent(tapPendingIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

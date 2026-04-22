@@ -45,9 +45,9 @@ import coil.decode.GifDecoder
 import coil.request.ImageRequest
 import edu.cuhk.csci3310.liftlog.data.local.model.RoutineWorkout
 import edu.cuhk.csci3310.liftlog.titlecase
+import edu.cuhk.csci3310.liftlog.toTimerString
+import edu.cuhk.csci3310.liftlog.toVerboseDuration
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.SpotterViewModel
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 @Composable
 fun SpotterScreen(
@@ -263,7 +263,7 @@ private fun TimerView(
         )
         Spacer(Modifier.height(32.dp))
         Text(
-            text = formatTime(countdown),
+            text = countdown.toTimerString(),
             style = MaterialTheme.typography.displayLarge.copy(
                 fontSize = 96.sp,
                 fontWeight = FontWeight.Bold,
@@ -316,17 +316,13 @@ private fun TimerView(
     }
 }
 
-@SuppressLint("DefaultLocale")
 @Composable
 private fun SessionCompletedView(
     startTime: Long,
     onDone: () -> Unit,
 ) {
     val duration = System.currentTimeMillis() - startTime
-    val formattedDuration =
-        duration.toDuration(DurationUnit.MILLISECONDS).toComponents { minues, seconds, _ ->
-            String.format("%02d minutes %02d seconds", minues, seconds)
-        }
+    val formattedDuration = duration.toVerboseDuration()
 
     Column(
         modifier = Modifier
@@ -392,16 +388,6 @@ private fun EndSessionDialog(
             }
         },
     )
-}
-
-private fun formatTime(seconds: Int): String {
-    val minutes = seconds / 60
-    val secs = seconds % 60
-    return if (minutes > 0) {
-        "%d:%02d".format(minutes, secs)
-    } else {
-        "0:%02d".format(secs)
-    }
 }
 
 private fun formatWeight(weight: Double): String {

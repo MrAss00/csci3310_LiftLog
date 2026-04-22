@@ -11,7 +11,6 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -23,31 +22,38 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import edu.cuhk.csci3310.liftlog.data.local.LiftLogDatabase
+import edu.cuhk.csci3310.liftlog.formatWithCommas
+import edu.cuhk.csci3310.liftlog.toAverageMinutes
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
+import java.time.format.TextStyle as JavaTextStyle
 
 class LiftLogWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // read daily goal from SharedPreferences
-        val prefs = context.getSharedPreferences("liftlog_prefs", Context.MODE_PRIVATE)
-        val dailyGoal = prefs.getLong("daily_goal_kg", 2000L)
-
-        // read today's volume from Room
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
+
         val startOfDay = today.atStartOfDay(zone).toInstant().toEpochMilli()
         val endOfDay = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val startOfMonth = today.withDayOfMonth(1).atStartOfDay(zone).toInstant().toEpochMilli()
 
-        val db = LiftLogDatabase.getInstance(context)
-        val todayVolume = db.sessionDao().getTodayVolume(startOfDay, endOfDay).first()
+        val dao = LiftLogDatabase.getInstance(context).sessionDao()
 
-        // build launch intent: open app at Log tab with picker auto-opened
+        val todayVolume = dao.getTodayVolume(startOfDay, endOfDay).first()
+        val monthlyVolume = dao.getMonthlyVolume(startOfMonth).first()
+        val monthlySessions = dao.getMonthlySessionCount(startOfMonth).first()
+        val avgDuration = dao.getAverageSessionDuration(startOfMonth).first()
+
+        val monthLabel = today.month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault())
+
         val launchIntent = Intent(
             Intent.ACTION_VIEW,
             "liftlog://log?openPicker=true".toUri(),
@@ -58,8 +64,11 @@ class LiftLogWidget : GlanceAppWidget() {
         provideContent {
             GlanceTheme {
                 WidgetContent(
+                    monthLabel = monthLabel,
                     todayVolume = todayVolume,
-                    dailyGoal = dailyGoal,
+                    monthlyVolume = monthlyVolume,
+                    monthlySessions = monthlySessions,
+                    avgDuration = avgDuration,
                     launchIntent = launchIntent,
                 )
             }
@@ -69,21 +78,21 @@ class LiftLogWidget : GlanceAppWidget() {
 
 @Composable
 private fun WidgetContent(
+    monthLabel: String,
     todayVolume: Long,
-    dailyGoal: Long,
+    monthlyVolume: Long,
+    monthlySessions: Int,
+    avgDuration: Long,
     launchIntent: Intent,
 ) {
-    val progress =
-        if (dailyGoal > 0) (todayVolume.toFloat() / dailyGoal.toFloat()).coerceIn(0f, 1f) else 0f
-    val goalReached = todayVolume >= dailyGoal
-
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceTheme.colors.surface)
-            .padding(16.dp),
+            .padding(12.dp),
         verticalAlignment = Alignment.Vertical.Top,
     ) {
+        // ── Header ────────────────────────────────────────────────────────────
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.Vertical.CenterVertically,
@@ -92,47 +101,56 @@ private fun WidgetContent(
                 text = "LiftLog",
                 style = TextStyle(
                     color = GlanceTheme.colors.primary,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                 ),
                 modifier = GlanceModifier.defaultWeight(),
             )
-            if (goalReached) {
-                Text(
-                    text = "Goal reached!",
-                    style = TextStyle(
-                        color = GlanceTheme.colors.primary,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                    ),
-                )
-            }
+            Text(
+                text = monthLabel,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontSize = 12.sp,
+                ),
+            )
         }
+
+        Spacer(GlanceModifier.height(10.dp))
+
+        // ── Stat grid (2 × 2) ─────────────────────────────────────────────────
+        Row(modifier = GlanceModifier.fillMaxWidth()) {
+            StatCell(
+                label = "Today's Volume",
+                value = "${todayVolume.formatWithCommas()} kg",
+                modifier = GlanceModifier.defaultWeight(),
+            )
+            Spacer(GlanceModifier.width(8.dp))
+            StatCell(
+                label = "Monthly Sessions",
+                value = monthlySessions.toString(),
+                modifier = GlanceModifier.defaultWeight(),
+            )
+        }
+
         Spacer(GlanceModifier.height(8.dp))
-        Text(
-            text = "Daily Goal",
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurfaceVariant,
-                fontSize = 12.sp,
-            ),
-        )
-        Spacer(GlanceModifier.height(2.dp))
-        Text(
-            text = "$todayVolume / $dailyGoal kg",
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurface,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-            ),
-        )
-        Spacer(GlanceModifier.height(8.dp))
-        LinearProgressIndicator(
-            progress = progress,
-            modifier = GlanceModifier.fillMaxWidth(),
-            color = if (goalReached) GlanceTheme.colors.tertiary else GlanceTheme.colors.primary,
-            backgroundColor = GlanceTheme.colors.surfaceVariant,
-        )
+
+        Row(modifier = GlanceModifier.fillMaxWidth()) {
+            StatCell(
+                label = "Monthly Volume",
+                value = "${monthlyVolume.formatWithCommas()} kg",
+                modifier = GlanceModifier.defaultWeight(),
+            )
+            Spacer(GlanceModifier.width(8.dp))
+            StatCell(
+                label = "Average Duration",
+                value = avgDuration.toAverageMinutes(),
+                modifier = GlanceModifier.defaultWeight(),
+            )
+        }
+
         Spacer(GlanceModifier.defaultWeight())
+
+        // ── CTA ───────────────────────────────────────────────────────────────
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
@@ -146,10 +164,43 @@ private fun WidgetContent(
                 text = "Start Logging",
                 style = TextStyle(
                     color = GlanceTheme.colors.onPrimaryContainer,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                 ),
             )
         }
+    }
+}
+
+@Composable
+private fun StatCell(
+    label: String,
+    value: String,
+    modifier: GlanceModifier = GlanceModifier,
+) {
+    Column(
+        modifier = modifier
+            .background(GlanceTheme.colors.surfaceVariant)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontSize = 10.sp,
+            ),
+            maxLines = 1,
+        )
+        Spacer(GlanceModifier.height(2.dp))
+        Text(
+            text = value,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            maxLines = 1,
+        )
     }
 }

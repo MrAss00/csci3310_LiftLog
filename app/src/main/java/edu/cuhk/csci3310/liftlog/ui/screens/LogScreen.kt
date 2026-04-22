@@ -44,13 +44,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.snapshotFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,8 +63,11 @@ import androidx.navigation.NavHostController
 import edu.cuhk.csci3310.liftlog.data.local.model.Routine
 import edu.cuhk.csci3310.liftlog.data.local.model.Session
 import edu.cuhk.csci3310.liftlog.titlecase
+import edu.cuhk.csci3310.liftlog.toCompactDuration
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.LogViewModel
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -75,8 +76,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 @Composable
 fun LogScreen(
@@ -355,13 +354,6 @@ private fun SessionCard(
             .format(DateTimeFormatter.ofPattern("h:mm a"))
     }
 
-    val formattedDuration = remember(session.duration) {
-        val duration = session.duration.toDuration(DurationUnit.MILLISECONDS)
-        duration.toComponents { minues, seconds, _ ->
-            String.format("%02dm%02ds", minues, seconds)
-        }
-    }
-
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -386,7 +378,7 @@ private fun SessionCard(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "$formattedStartTime • $formattedDuration",
+                        text = "$formattedStartTime • ${session.duration.toCompactDuration()}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

@@ -1,5 +1,8 @@
 package edu.cuhk.csci3310.liftlog.data.repository
 
+import edu.cuhk.csci3310.liftlog.data.local.dao.DayVolume
+import edu.cuhk.csci3310.liftlog.data.local.dao.ExerciseBest
+import edu.cuhk.csci3310.liftlog.data.local.dao.ExerciseSetCount
 import edu.cuhk.csci3310.liftlog.data.local.dao.SessionDao
 import edu.cuhk.csci3310.liftlog.data.local.entity.SessionEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.SessionExerciseEntity
@@ -14,13 +17,13 @@ class SessionRepository(private val dao: SessionDao) {
     fun getSessionTimestampsInRange(startOfMonth: Long, endOfMonth: Long): Flow<List<Long>> =
         dao.getSessionTimestampsInRange(startOfMonth, endOfMonth)
 
-    fun insertSession(session: SessionEntity): Long =
+    suspend fun insertSession(session: SessionEntity): Long =
         dao.insertSession(session)
 
-    fun insertSessionExercises(exercises: List<SessionExerciseEntity>) =
+    suspend fun insertSessionExercises(exercises: List<SessionExerciseEntity>) =
         dao.insertSessionExercises(exercises)
 
-    fun deleteSession(session: Session) =
+    suspend fun deleteSession(session: Session) =
         dao.deleteSession(session.session)
 
     fun getMonthlyVolume(startOfMonth: Long): Flow<Long> =
@@ -32,6 +35,15 @@ class SessionRepository(private val dao: SessionDao) {
     fun getMonthlyTotalSets(startOfMonth: Long): Flow<Int> =
         dao.getMonthlyTotalSets(startOfMonth)
 
-    fun getTodayVolume(startOfDay: Long, endOfDay: Long): Flow<Long> =
-        dao.getTodayVolume(startOfDay, endOfDay)
+    fun getVolumePerDay(start: Long, end: Long): Flow<List<DayVolume>> =
+        dao.getVolumePerDay(start, end)
+
+    fun getTopExercisesBySets(): Flow<List<ExerciseSetCount>> =
+        dao.getTopExercisesBySets()
+
+    fun getPersonalRecords(): Flow<List<ExerciseBest>> =
+        dao.getPersonalRecords()
+
+    fun getAverageSessionDuration(startOfMonth: Long): Flow<Long> =
+        dao.getAverageSessionDuration(startOfMonth)
 }
