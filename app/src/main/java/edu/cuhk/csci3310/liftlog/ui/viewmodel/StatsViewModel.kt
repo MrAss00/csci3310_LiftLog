@@ -43,9 +43,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         val startOfMonth = today.withDayOfMonth(1)
             .atStartOfDay(zone).toInstant().toEpochMilli()
 
-        val heatmapStart = today.minusDays(83)
-            .atStartOfDay(zone).toInstant().toEpochMilli()
-        val heatmapEnd = today.plusDays(1)
+        val heatmapStart = startOfMonth
+        val heatmapEnd = today.withDayOfMonth(1).plusMonths(1)
             .atStartOfDay(zone).toInstant().toEpochMilli()
 
         viewModelScope.launch {
@@ -75,10 +74,11 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.getVolumePerDay(heatmapStart, heatmapEnd).collect { rows ->
                 val map = rows.associate { it.day to it.totalVolume }
-                val days = (0L..83L).map { offset ->
-                    val day = today.minusDays(83L - offset)
-                        .atStartOfDay(zone).toInstant().toEpochMilli()
-                    HeatmapDay(day, map[day] ?: 0L)
+                val daysInMonth = today.lengthOfMonth()
+                val days = (1..daysInMonth).map { dayNum ->
+                    val date = today.withDayOfMonth(dayNum)
+                    val epochMs = date.atStartOfDay(zone).toInstant().toEpochMilli()
+                    HeatmapDay(epochMs, map[date.toString()] ?: 0L)
                 }
                 _state.update { it.copy(heatmapData = days) }
             }

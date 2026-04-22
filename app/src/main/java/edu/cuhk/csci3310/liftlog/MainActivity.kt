@@ -85,21 +85,7 @@ fun LiftLogApp() {
         exitTransition = { ExitTransition.None },
     ) {
         composable(Screen.Stats.route) { StatsScreen(navController) }
-        composable(
-            route = "${Screen.Log.route}?openPicker={openPicker}",
-            arguments = listOf(
-                navArgument("openPicker") {
-                    type = NavType.BoolType
-                    defaultValue = false
-                },
-            ),
-            deepLinks = listOf(
-                navDeepLink { uriPattern = "liftlog://log?openPicker={openPicker}" },
-            ),
-        ) { backStackEntry ->
-            val openPicker = backStackEntry.arguments?.getBoolean("openPicker") ?: false
-            LogScreen(navController, openPicker = openPicker)
-        }
+        composable(Screen.Log.route) { LogScreen(navController) }
         composable(Screen.Routines.route) { RoutinesScreen(navController) }
 
         composable(

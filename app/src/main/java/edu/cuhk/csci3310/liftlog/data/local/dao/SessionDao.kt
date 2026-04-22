@@ -36,7 +36,7 @@ interface SessionDao {
     @Query(""" SELECT COUNT(*) FROM sessions WHERE startTime >= :startOfMonth """)
     fun getMonthlySessionCount(startOfMonth: Long): Flow<Int>
 
-    @Query(""" SELECT COALESCE(SUM(setsCount), 0) FROM sessions WHERE startTime >= :startOfMonth """)
+    @Query(""" SELECT COALESCE(SUM(totalSets), 0) FROM sessions WHERE startTime >= :startOfMonth """)
     fun getMonthlyTotalSets(startOfMonth: Long): Flow<Int>
 
     @Query(""" SELECT COALESCE(SUM(totalVolume), 0) FROM sessions WHERE startTime >= :startOfDay AND startTime < :endOfDay """)
@@ -44,7 +44,7 @@ interface SessionDao {
 
     @Query(
         """
-        SELECT (startTime / 86400000) * 86400000 AS day,
+        SELECT date(startTime / 1000, 'unixepoch', 'localtime') AS day,
                COALESCE(SUM(totalVolume), 0) AS totalVolume
         FROM sessions
         WHERE startTime >= :start AND startTime < :end
@@ -56,10 +56,11 @@ interface SessionDao {
 
     @Query(
         """
-        SELECT exerciseName, SUM(sets) AS totalSets
+        SELECT exerciseName, SUM(completedSets) AS totalCompletedSets
         FROM session_exercises
+        WHERE completedSets > 0
         GROUP BY exerciseName
-        ORDER BY totalSets DESC
+        ORDER BY totalCompletedSets DESC
         LIMIT 5
     """,
     )
@@ -69,6 +70,7 @@ interface SessionDao {
         """
         SELECT exerciseName, MAX(weight) AS maxWeight
         FROM session_exercises
+        WHERE completedSets > 0
         GROUP BY exerciseName
         ORDER BY maxWeight DESC
         LIMIT 5
@@ -86,6 +88,6 @@ interface SessionDao {
     fun getAverageSessionDuration(startOfMonth: Long): Flow<Long>
 }
 
-data class DayVolume(val day: Long, val totalVolume: Long)
-data class ExerciseSetCount(val exerciseName: String, val totalSets: Int)
+data class DayVolume(val day: String, val totalVolume: Long)
+data class ExerciseSetCount(val exerciseName: String, val totalCompletedSets: Int)
 data class ExerciseBest(val exerciseName: String, val maxWeight: Double)

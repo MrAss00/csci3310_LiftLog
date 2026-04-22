@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,11 +45,14 @@ import edu.cuhk.csci3310.liftlog.data.local.dao.ExerciseBest
 import edu.cuhk.csci3310.liftlog.data.local.dao.ExerciseSetCount
 import edu.cuhk.csci3310.liftlog.formatWeight
 import edu.cuhk.csci3310.liftlog.formatWithCommas
+import edu.cuhk.csci3310.liftlog.titlecase
 import edu.cuhk.csci3310.liftlog.toAverageMinutes
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.HeatmapDay
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.StatsViewModel
-import edu.cuhk.csci3310.liftlog.ui.viewmodel.StatsViewState
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Composable
 fun StatsScreen(
@@ -66,7 +70,7 @@ fun StatsScreen(
         personalRecords,
     ) = state
 
-    LiftLogTabScaffold(navController, title = "Stats") { innerPadding ->
+    LiftLogTabScaffold(navController, topBar = {}) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -89,7 +93,7 @@ fun StatsScreen(
             }
             item {
                 Spacer(Modifier.height(4.dp))
-                SectionLabel("Activity —  Last 12 Weeks")
+                SectionLabel("Activity Heatmap")
                 Spacer(Modifier.height(8.dp))
                 ActivityHeatmap(heatmapData)
             }
@@ -227,11 +231,31 @@ private fun AverageDurationCard(average: Long) {
 
 @Composable
 private fun ActivityHeatmap(days: List<HeatmapDay>) {
+    val today = remember { LocalDate.now() }
+
     val colorEmpty = MaterialTheme.colorScheme.surfaceVariant
     val colorFull = MaterialTheme.colorScheme.primary
+    // future days: same hue as empty but noticeably dimmer
+    val colorFuture = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+    val onEmpty = MaterialTheme.colorScheme.onSurfaceVariant
+    val onFull = MaterialTheme.colorScheme.onPrimary
 
     val maxVolume = days.maxOfOrNull { it.volume }?.takeIf { it > 0 } ?: 1L
-    val weeks = days.chunked(7)
+
+    val daysInMonth = today.lengthOfMonth()
+    val todayDayNum = today.dayOfMonth
+
+    // Java DayOfWeek: MONDAY=1 … SUNDAY=7; we want Sun=0 … Sat=6
+    val startOffset = today.withDayOfMonth(1).dayOfWeek.value % 7
+
+    val monthLabel = today.month.getDisplayName(TextStyle.FULL, Locale.getDefault()) +
+            " " + today.year
+
+    val dayLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+    // total grid slots needed (leading empties + all days in month), rounded up to full weeks
+    val totalSlots = startOffset + daysInMonth
+    val totalRows = (totalSlots + 6) / 7
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -239,7 +263,6 @@ private fun ActivityHeatmap(days: List<HeatmapDay>) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            val dayLabels = listOf("S", "M", "T", "W", "T", "F", "S")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -256,32 +279,68 @@ private fun ActivityHeatmap(days: List<HeatmapDay>) {
             }
             Spacer(Modifier.height(6.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                weeks.forEach { week ->
+                for (row in 0 until totalRows) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        week.forEach { day ->
-                            val fraction =
-                                (day.volume.toFloat() / maxVolume.toFloat()).coerceIn(0f, 1f)
-                            val cellColor = if (day.volume == 0L) colorEmpty
-                            else lerp(colorEmpty, colorFull, 0.25f + fraction * 0.75f)
+                        for (col in 0 until 7) {
+                            val slot = row * 7 + col
+                            val dayNum = slot - startOffset + 1
+                            if (dayNum !in 1..daysInMonth) {
+                                // empty spacer —  keeps grid aligned
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f),
+                                )
+                            } else {
+                                val isFuture = dayNum > todayDayNum
+                                val volume =
+                                    if (isFuture) 0L else days.getOrNull(dayNum - 1)?.volume ?: 0L
 
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(cellColor),
-                            )
-                        }
-                        // pad final row if shorter than 7
-                        repeat(7 - week.size) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f),
-                            )
+                                val cellColor = when {
+                                    isFuture -> colorFuture
+                                    volume == 0L -> colorEmpty
+                                    else -> {
+                                        val fraction =
+                                            (volume.toFloat() / maxVolume.toFloat()).coerceIn(
+                                                0f,
+                                                1f,
+                                            )
+                                        lerp(colorEmpty, colorFull, 0.25f + fraction * 0.75f)
+                                    }
+                                }
+                                val textColor = when {
+                                    isFuture -> MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                        alpha = 0.4f,
+                                    )
+
+                                    volume == 0L -> onEmpty
+                                    else -> {
+                                        val fraction =
+                                            (volume.toFloat() / maxVolume.toFloat()).coerceIn(
+                                                0f,
+                                                1f,
+                                            )
+                                        lerp(onEmpty, onFull, 0.25f + fraction * 0.75f)
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(cellColor),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = dayNum.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = textColor,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -325,7 +384,7 @@ private fun PersonalRecordsCard(records: List<ExerciseBest>) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             if (records.isEmpty()) {
-                EmptyHint("no sessions logged yet")
+                EmptyHint("no exercises logged yet")
             } else {
                 records.forEachIndexed { index, pr ->
                     Row(
@@ -342,7 +401,7 @@ private fun PersonalRecordsCard(records: List<ExerciseBest>) {
                         )
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            text = pr.exerciseName,
+                            text = pr.exerciseName.titlecase(),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
@@ -373,9 +432,9 @@ private fun TopExercisesCard(exercises: List<ExerciseSetCount>) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             if (exercises.isEmpty()) {
-                EmptyHint("no sessions logged yet")
+                EmptyHint("no exercises logged yet")
             } else {
-                val maxSets = exercises.firstOrNull()?.totalSets?.takeIf { it > 0 } ?: 1
+                val maxSets = exercises.firstOrNull()?.totalCompletedSets?.takeIf { it > 0 } ?: 1
                 exercises.forEachIndexed { index, ex ->
                     Column(modifier = Modifier.padding(vertical = 6.dp)) {
                         Row(
@@ -383,7 +442,7 @@ private fun TopExercisesCard(exercises: List<ExerciseSetCount>) {
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = ex.exerciseName,
+                                text = ex.exerciseName.titlecase(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.weight(1f),
                                 maxLines = 1,
@@ -391,14 +450,14 @@ private fun TopExercisesCard(exercises: List<ExerciseSetCount>) {
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "${ex.totalSets} sets",
+                                text = "${ex.totalCompletedSets} sets",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
                         Spacer(Modifier.height(4.dp))
-                        val fraction = ex.totalSets.toFloat() / maxSets.toFloat()
+                        val fraction = ex.totalCompletedSets.toFloat() / maxSets.toFloat()
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()

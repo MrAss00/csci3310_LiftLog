@@ -27,6 +27,7 @@ data class SessionExerciseEntity(
     val sessionId: Long,
     val exerciseName: String,
     val sets: Int,
+    val completedSets: Int,
     val reps: Int,
     val weight: Double,
     val index: Int,

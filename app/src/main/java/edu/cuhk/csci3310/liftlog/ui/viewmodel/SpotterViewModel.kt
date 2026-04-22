@@ -199,32 +199,34 @@ class SpotterViewModel(
         viewModelScope.launch {
             val routine = _state.value.routine ?: return@launch
 
-            // for calculate the totalvolume done in a session
             var totalVolume = 0L
             var totalSets = 0
 
-            // parse total volume
             val currentWorkoutIndex = _state.value.currentWorkoutIndex
             val currentSetInLastWorkout = _state.value.currentSet
             val isSessionFullyCompleted = _state.value.isCompleted
 
-            routine.workouts.forEachIndexed { index, workout ->
-                val setsCompletedInThisWorkout = when {
-                    index < currentWorkoutIndex -> workout.sets
-                    //current
-                    index == currentWorkoutIndex -> {
-                        if (isSessionFullyCompleted) {
-                            workout.sets
-                        } else {
-                            (currentSetInLastWorkout - 1).coerceAtLeast(0)
+            val setsCompletedPerWorkout = routine.workouts
+                .sortedBy { it.index }
+                .mapIndexed { index, workout ->
+                    val setsCompleted = when {
+                        index < currentWorkoutIndex -> workout.sets
+                        index == currentWorkoutIndex -> {
+                            if (isSessionFullyCompleted) {
+                                workout.sets
+                            } else {
+                                (currentSetInLastWorkout - 1).coerceAtLeast(0)
+                            }
                         }
-                    }
 
-                    else -> 0
+                        else -> 0
+                    }
+                    workout to setsCompleted
                 }
 
-                totalSets += setsCompletedInThisWorkout
-                totalVolume += (workout.weight * workout.reps * setsCompletedInThisWorkout).toLong()
+            setsCompletedPerWorkout.forEach { (workout, setsCompleted) ->
+                totalSets += setsCompleted
+                totalVolume += (workout.weight * workout.reps * setsCompleted).toLong()
             }
 
 
@@ -234,17 +236,18 @@ class SpotterViewModel(
                 startTime = _state.value.startTime,
                 endTime = System.currentTimeMillis(),
                 totalVolume = totalVolume,
-                setsCount = totalSets,
+                totalSets = totalSets,
             )
             val sessionId = sessionRepository.insertSession(session)
 
-            val sessionExercises = routine.workouts
-                .sortedBy { it.index }
-                .mapIndexed { index, workout ->
+            // Save ALL planned exercises; completedSets tracks actual progress per exercise
+            val sessionExercises = setsCompletedPerWorkout
+                .mapIndexed { index, (workout, setsCompleted) ->
                     SessionExerciseEntity(
                         sessionId = sessionId,
                         exerciseName = workout.exerciseName,
                         sets = workout.sets,
+                        completedSets = setsCompleted,
                         reps = workout.reps,
                         weight = workout.weight,
                         index = index,

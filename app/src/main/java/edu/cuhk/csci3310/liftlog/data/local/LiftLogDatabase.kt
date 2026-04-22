@@ -12,7 +12,7 @@ import edu.cuhk.csci3310.liftlog.data.local.entity.SessionEntity
 import edu.cuhk.csci3310.liftlog.data.local.entity.SessionExerciseEntity
 
 @Database(
-    version = 7,
+    version = 9,
     exportSchema = false,
     entities = [
         RoutineEntity::class,

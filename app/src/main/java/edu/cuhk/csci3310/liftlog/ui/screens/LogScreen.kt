@@ -21,14 +21,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,13 +41,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,15 +57,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import edu.cuhk.csci3310.liftlog.data.local.model.Routine
 import edu.cuhk.csci3310.liftlog.data.local.model.Session
 import edu.cuhk.csci3310.liftlog.titlecase
 import edu.cuhk.csci3310.liftlog.toCompactDuration
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
 import edu.cuhk.csci3310.liftlog.ui.components.RoutinePickerDialog
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.LogViewModel
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -81,25 +75,12 @@ import java.util.Locale
 @Composable
 fun LogScreen(
     navController: NavHostController,
-    openPicker: Boolean = false,
     viewModel: LogViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsState()
 
     var showRoutinePickerDialog by remember { mutableStateOf(false) }
     var sessionToDelete by remember { mutableStateOf<Session?>(null) }
-
-    // Auto-open the routine picker when launched from the widget. Keyed on
-    // openPicker alone so this runs exactly once per screen instance. We wait
-    // for routines to finish loading before showing the dialog.
-    LaunchedEffect(openPicker) {
-        if (openPicker) {
-            snapshotFlow { state.routines }
-                .filter { it.isNotEmpty() }
-                .first()
-            showRoutinePickerDialog = true
-        }
-    }
 
     LiftLogTabScaffold(navController, topBar = {}) { innerPadding ->
         Box(
@@ -161,7 +142,7 @@ fun LogScreen(
                         .align(Alignment.BottomEnd)
                         .padding(16.dp),
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Start Session")
+                    Icon(Icons.Filled.PlayArrow, contentDescription = "Start Session")
                 }
             }
         }
@@ -422,6 +403,19 @@ private fun SessionCard(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     },
+                                    trailingContent = {
+                                        val completed = exercise.completedSets
+                                        val planned = exercise.sets
+                                        val allDone = completed >= planned
+                                        Text(
+                                            text = "$completed / $planned sets",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (allDone)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    },
                                     colors = ListItemDefaults.colors(
                                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                                     ),
@@ -459,5 +453,3 @@ private fun SessionCard(
         }
     }
 }
-
-
