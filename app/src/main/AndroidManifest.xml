@@ -34,6 +34,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".widget.RoutinePickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LiftLog.Transparent" />
+
         <service
             android:name=".service.RestTimerService"
             android:exported="false"

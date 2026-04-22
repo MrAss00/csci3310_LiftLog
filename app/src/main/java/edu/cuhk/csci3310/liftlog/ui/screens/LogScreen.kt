@@ -65,6 +65,7 @@ import edu.cuhk.csci3310.liftlog.data.local.model.Session
 import edu.cuhk.csci3310.liftlog.titlecase
 import edu.cuhk.csci3310.liftlog.toCompactDuration
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
+import edu.cuhk.csci3310.liftlog.ui.components.RoutinePickerDialog
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.LogViewModel
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -459,52 +460,4 @@ private fun SessionCard(
     }
 }
 
-@Composable
-private fun RoutinePickerDialog(
-    routines: List<Routine>,
-    onRoutineSelected: (Routine) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select Routine") },
-        text = {
-            LazyColumn {
-                items(routines, key = { it.routine.id }) { routine ->
-                    ListItem(
-                        headlineContent = {
-                            Text(
-                                text = routine.routine.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        },
-                        supportingContent = {
-                            Text(
-                                text = "${routine.workouts.size} workouts",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        },
-//                            leadingContent = {
-//                                Icon(
-//                                    imageVector = Icons.Filled.FitnessCenter,
-//                                    contentDescription = null,
-//                                    tint = MaterialTheme.colorScheme.primary,
-//                                )
-//                            },
-                        modifier = Modifier
-                            .padding(vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onRoutineSelected(routine) },
-                    )
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
-}
+

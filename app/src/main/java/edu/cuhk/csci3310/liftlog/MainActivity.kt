@@ -132,6 +132,9 @@ fun LiftLogApp() {
             arguments = listOf(
                 navArgument("routineId") { type = NavType.LongType },
             ),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "liftlog://spotter/{routineId}" },
+            ),
             enterTransition = {
                 slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up)
             },

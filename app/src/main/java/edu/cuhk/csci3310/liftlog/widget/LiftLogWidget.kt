@@ -5,7 +5,6 @@ import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -50,16 +49,14 @@ class LiftLogWidget : GlanceAppWidget() {
         val todayVolume = dao.getTodayVolume(startOfDay, endOfDay).first()
         val monthlyVolume = dao.getMonthlyVolume(startOfMonth).first()
         val monthlySessions = dao.getMonthlySessionCount(startOfMonth).first()
-        val avgDuration = dao.getAverageSessionDuration(startOfMonth).first()
+        val averageDuration = dao.getAverageSessionDuration(startOfMonth).first()
 
         val monthLabel = today.month.getDisplayName(JavaTextStyle.FULL, Locale.getDefault())
 
-        val launchIntent = Intent(
-            Intent.ACTION_VIEW,
-            "liftlog://log?openPicker=true".toUri(),
-            context,
-            edu.cuhk.csci3310.liftlog.MainActivity::class.java,
-        ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP }
+        // open the routine picker dialog instead of directly launching the app
+        val pickerIntent = Intent(context, RoutinePickerActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
 
         provideContent {
             GlanceTheme {
@@ -68,8 +65,8 @@ class LiftLogWidget : GlanceAppWidget() {
                     todayVolume = todayVolume,
                     monthlyVolume = monthlyVolume,
                     monthlySessions = monthlySessions,
-                    avgDuration = avgDuration,
-                    launchIntent = launchIntent,
+                    averageDuration = averageDuration,
+                    pickerIntent = pickerIntent,
                 )
             }
         }
@@ -82,8 +79,8 @@ private fun WidgetContent(
     todayVolume: Long,
     monthlyVolume: Long,
     monthlySessions: Int,
-    avgDuration: Long,
-    launchIntent: Intent,
+    averageDuration: Long,
+    pickerIntent: Intent,
 ) {
     Column(
         modifier = GlanceModifier
@@ -92,7 +89,6 @@ private fun WidgetContent(
             .padding(12.dp),
         verticalAlignment = Alignment.Vertical.Top,
     ) {
-        // ── Header ────────────────────────────────────────────────────────────
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.Vertical.CenterVertically,
@@ -114,10 +110,7 @@ private fun WidgetContent(
                 ),
             )
         }
-
         Spacer(GlanceModifier.height(10.dp))
-
-        // ── Stat grid (2 × 2) ─────────────────────────────────────────────────
         Row(modifier = GlanceModifier.fillMaxWidth()) {
             StatCell(
                 label = "Today's Volume",
@@ -131,9 +124,7 @@ private fun WidgetContent(
                 modifier = GlanceModifier.defaultWeight(),
             )
         }
-
         Spacer(GlanceModifier.height(8.dp))
-
         Row(modifier = GlanceModifier.fillMaxWidth()) {
             StatCell(
                 label = "Monthly Volume",
@@ -143,19 +134,16 @@ private fun WidgetContent(
             Spacer(GlanceModifier.width(8.dp))
             StatCell(
                 label = "Average Duration",
-                value = avgDuration.toAverageMinutes(),
+                value = averageDuration.toAverageMinutes(),
                 modifier = GlanceModifier.defaultWeight(),
             )
         }
-
         Spacer(GlanceModifier.defaultWeight())
-
-        // ── CTA ───────────────────────────────────────────────────────────────
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .background(GlanceTheme.colors.primaryContainer)
-                .clickable(actionStartActivity(launchIntent))
+                .clickable(actionStartActivity(pickerIntent))
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
             verticalAlignment = Alignment.Vertical.CenterVertically,
