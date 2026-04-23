@@ -51,6 +51,7 @@ import coil.compose.AsyncImage
 import coil.decode.GifDecoder
 import coil.request.ImageRequest
 import edu.cuhk.csci3310.liftlog.data.local.model.RoutineWorkout
+import edu.cuhk.csci3310.liftlog.data.repository.SettingsRepository
 import edu.cuhk.csci3310.liftlog.titlecase
 import edu.cuhk.csci3310.liftlog.toTimerString
 import edu.cuhk.csci3310.liftlog.toVerboseDuration
@@ -67,6 +68,10 @@ fun SpotterScreen(
 
     val state by viewModel.state.collectAsState()
 
+    // read the voice rep-counting toggle from settings
+    val settingsRepo = remember { SettingsRepository(context) }
+    val speechEnabled by settingsRepo.speechRecognitionEnabled.collectAsState(initial = false)
+
     var showEndSessionDialog by remember { mutableStateOf(false) }
     var showInstructionsFor by remember { mutableStateOf<String?>(null) }
 
@@ -82,16 +87,16 @@ fun SpotterScreen(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> hasAudioPermission = granted }
 
-    // ask for the permission once when the screen first appears
-    LaunchedEffect(Unit) {
-        if (!hasAudioPermission) {
+    // ask for the permission once when the screen first appears, but only if the feature is on
+    LaunchedEffect(speechEnabled) {
+        if (speechEnabled && !hasAudioPermission) {
             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 
-    // single SpeechManager instance, recreated only if permission state changes
-    val speechManager = remember(hasAudioPermission) {
-        if (hasAudioPermission) {
+    // single SpeechManager instance, recreated only if permission/feature-toggle state changes
+    val speechManager = remember(hasAudioPermission, speechEnabled) {
+        if (hasAudioPermission && speechEnabled) {
             SpeechManager(
                 context = context,
                 onNumberDetected = { reps ->
@@ -110,8 +115,14 @@ fun SpotterScreen(
         onDispose { speechManager?.release() }
     }
 
-    // start or stop the microphone whenever the timer state changes
-    LaunchedEffect(state.isTimerRunning, state.isCompleted, hasAudioPermission, speechManager) {
+    // start or stop the microphone whenever the timer state or feature toggle changes
+    LaunchedEffect(
+        state.isTimerRunning,
+        state.isCompleted,
+        hasAudioPermission,
+        speechEnabled,
+        speechManager,
+    ) {
         if (speechManager == null || state.isCompleted) {
             speechManager?.stopListening()
             return@LaunchedEffect
@@ -168,6 +179,7 @@ fun SpotterScreen(
                     state.currentWorkout?.let { workout ->
                         WorkoutView(
                             workout = workout,
+                            speechEnabled = speechEnabled,
                             currentSet = state.currentSet,
                             currentReps = state.currentReps,
                             workoutNumber = state.currentWorkoutIndex + 1,
@@ -209,6 +221,7 @@ fun SpotterScreen(
 @Composable
 private fun WorkoutView(
     workout: RoutineWorkout,
+    speechEnabled: Boolean,
     currentSet: Int,
     currentReps: Int,
     workoutNumber: Int,
@@ -274,21 +287,23 @@ private fun WorkoutView(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Spacer(Modifier.height(16.dp))
-            AnimatedContent(
-                targetState = currentReps,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "rep_counter",
-            ) { reps ->
-                Text(
-                    text = if (reps == 0) "Listening for reps…" else "Rep $reps / ${workout.reps}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (reps >= workout.reps)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = if (reps >= workout.reps) FontWeight.Bold else FontWeight.Normal,
-                )
+            if (speechEnabled) {
+                Spacer(Modifier.height(16.dp))
+                AnimatedContent(
+                    targetState = currentReps,
+                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    label = "rep_counter",
+                ) { reps ->
+                    Text(
+                        text = if (reps == 0) "Listening for reps…" else "Rep $reps / ${workout.reps}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (reps >= workout.reps)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (reps >= workout.reps) FontWeight.Bold else FontWeight.Normal,
+                    )
+                }
             }
         }
         Column(

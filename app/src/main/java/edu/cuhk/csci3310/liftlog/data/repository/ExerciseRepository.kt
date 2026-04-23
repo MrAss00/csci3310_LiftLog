@@ -3,6 +3,7 @@ package edu.cuhk.csci3310.liftlog.data.repository
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import edu.cuhk.csci3310.liftlog.data.remote.RetrofitInstance
 import edu.cuhk.csci3310.liftlog.data.remote.model.BodyPart
 import edu.cuhk.csci3310.liftlog.data.remote.model.Exercise
 
@@ -10,7 +11,8 @@ class ExerciseRepository(private val context: Context) {
 
     private val gson = Gson()
 
-    // lazily load and cache all exercises from assets on first access
+    // ── local (asset-backed) ─────────────────────────────────────────────────
+
     private val allExercises: List<Exercise> by lazy {
         val json = context.assets.open("exercises.json").bufferedReader().use { it.readText() }
         val type = object : TypeToken<List<Exercise>>() {}.type
@@ -24,43 +26,74 @@ class ExerciseRepository(private val context: Context) {
         parts.map { it.name }
     }
 
-    fun searchExercises(
+    private fun searchLocal(query: String, offset: Int, limit: Int): Result<List<Exercise>> =
+        runCatching {
+            val filtered = if (query.isBlank()) allExercises
+            else allExercises.filter { it.name.contains(query, ignoreCase = true) }
+            filtered.drop(offset).take(limit)
+        }
+
+    private fun listByBodyPartLocal(
+        bodyPart: String,
+        offset: Int,
+        limit: Int,
+    ): Result<List<Exercise>> =
+        runCatching {
+            allExercises
+                .filter { ex -> ex.bodyParts.any { it.equals(bodyPart, ignoreCase = true) } }
+                .drop(offset).take(limit)
+        }
+
+    private fun getBodyPartsLocal(): Result<List<String>> = runCatching { allBodyParts }
+
+    // ── remote (Retrofit) ────────────────────────────────────────────────────
+
+    private val api get() = RetrofitInstance.api
+
+    private suspend fun searchRemote(
+        query: String,
+        offset: Int,
+        limit: Int,
+    ): Result<List<Exercise>> =
+        runCatching { api.searchExercises(search = query, offset = offset, limit = limit).data }
+
+    private suspend fun listByBodyPartRemote(
+        bodyPart: String,
+        offset: Int,
+        limit: Int,
+    ): Result<List<Exercise>> =
+        runCatching {
+            api.listExercisesByBodyPart(
+                bodyPart = bodyPart,
+                offset = offset,
+                limit = limit,
+            ).data
+        }
+
+    private suspend fun getBodyPartsRemote(): Result<List<String>> =
+        runCatching { api.getBodyParts().data.map { it.name } }
+
+    // ── public API ───────────────────────────────────────────────────────────
+
+    suspend fun searchExercises(
         query: String,
         offset: Int = 0,
         limit: Int = 20,
-    ): Result<List<Exercise>> {
-        return try {
-            val filtered = if (query.isBlank()) {
-                allExercises
-            } else {
-                allExercises.filter { it.name.contains(query, ignoreCase = true) }
-            }
-            Result.success(filtered.drop(offset).take(limit))
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+        useRemote: Boolean = false,
+    ): Result<List<Exercise>> =
+        if (useRemote) searchRemote(query, offset, limit)
+        else searchLocal(query, offset, limit)
 
-    fun listExercisesByBodyPart(
+    suspend fun listExercisesByBodyPart(
         bodyPart: String,
         offset: Int = 0,
         limit: Int = 20,
-    ): Result<List<Exercise>> {
-        return try {
-            val filtered = allExercises.filter { exercise ->
-                exercise.bodyParts.any { it.equals(bodyPart, ignoreCase = true) }
-            }
-            Result.success(filtered.drop(offset).take(limit))
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+        useRemote: Boolean = false,
+    ): Result<List<Exercise>> =
+        if (useRemote) listByBodyPartRemote(bodyPart, offset, limit)
+        else listByBodyPartLocal(bodyPart, offset, limit)
 
-    fun getBodyParts(): Result<List<String>> {
-        return try {
-            Result.success(allBodyParts)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+    suspend fun getBodyParts(useRemote: Boolean = false): Result<List<String>> =
+        if (useRemote) getBodyPartsRemote()
+        else getBodyPartsLocal()
 }

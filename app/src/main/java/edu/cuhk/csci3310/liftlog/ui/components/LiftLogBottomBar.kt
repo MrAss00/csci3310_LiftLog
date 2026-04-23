@@ -12,7 +12,7 @@ import edu.cuhk.csci3310.liftlog.ui.navigation.Screen
 
 @Composable
 fun LiftLogBottomBar(navController: NavHostController) {
-    val tabs = listOf(Screen.Stats, Screen.Log, Screen.Routines)
+    val tabs = listOf(Screen.Stats, Screen.Log, Screen.Routines, Screen.Settings)
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
