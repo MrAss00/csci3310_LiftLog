@@ -1,5 +1,8 @@
 package edu.cuhk.csci3310.liftlog
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -31,6 +34,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // notification
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "liftlog_goal_channel",
+                "LiftLog Goals",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications when you achieve daily or monthly lifting goals"
+            }
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+
         setContent {
             LiftLogTheme {
                 LiftLogApp()

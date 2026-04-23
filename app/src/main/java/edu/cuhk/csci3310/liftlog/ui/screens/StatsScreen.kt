@@ -1,6 +1,9 @@
 package edu.cuhk.csci3310.liftlog.ui.screens
 
+import android.Manifest
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +45,9 @@ import edu.cuhk.csci3310.liftlog.ui.viewmodel.StatsViewModel
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -57,12 +63,46 @@ fun StatsScreen(
     val monthlyTotalSets by viewModel.monthlyTotalSets.collectAsState(initial = 0)
     val dailyGoal by viewModel.dailyGoal.collectAsState()
     val todayVolume by viewModel.todayVolume.collectAsState()
+    val context = LocalContext.current
+
+    val showDailyCongrats by viewModel.showDailyCongrats.collectAsState()
+    val showMonthlyCongrats by viewModel.showMonthlyCongrats.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.refreshMonthlyGoal()
         viewModel.refreshDailyGoal() // both functions force stat screen to read the variavles again
         viewModel.refreshTodayVolume()
         viewModel.refreshWeeklyProgress()
+    }
+
+    LaunchedEffect(todayVolume, monthlyVolume) {
+        viewModel.checkAndNotifyGoals(context)
+    }
+
+    if (showDailyCongrats) {
+        AlertDialog(
+            onDismissRequest = { viewModel.resetCongratsShown() },
+            title = { Text("Daily Goal Achieved!") },
+            text = { Text("Congratulations! You have reached your daily lifting goal! Keep it up 💪") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.resetCongratsShown() }) {
+                    Text("Awesome!")
+                }
+            }
+        )
+    }
+
+    if (showMonthlyCongrats) {
+        AlertDialog(
+            onDismissRequest = { viewModel.resetCongratsShown() },
+            title = { Text("Monthly Goal Crushed!") },
+            text = { Text("Amazing work! You have achieved your monthly goal! You're unstoppable 🔥") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.resetCongratsShown() }) {
+                    Text("go go goooooo!")
+                }
+            }
+        )
     }
 
     LiftLogTabScaffold(navController, title = "Summary") { innerPadding ->
@@ -75,7 +115,7 @@ fun StatsScreen(
         ) {
             item { MonthlyGoalCard(monthlyVolume, monthlyGoal, monthlyProgress) }
             item { DailyStatsRow(monthlySessions,monthlyTotalSets) }   // still hardcoded for now
-            item { TodayGoalCards(dailyGoal = dailyGoal, todayVolume) }
+            item { TodayGoalCards(dailyGoal = dailyGoal, TodayVolume = todayVolume) }
             item { WeeklyGoalsSection(progressValues = viewModel.weeklyProgress.collectAsState().value) }
         }
     }

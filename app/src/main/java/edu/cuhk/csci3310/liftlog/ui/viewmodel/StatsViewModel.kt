@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import edu.cuhk.csci3310.liftlog.NotificationHelper
 import edu.cuhk.csci3310.liftlog.data.local.LiftLogDatabase
 import edu.cuhk.csci3310.liftlog.data.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -118,6 +119,39 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
             _weeklyProgress.value = progressList
         }
+    }
+
+    fun checkAndNotifyGoals(context: Context) {
+        val today = LocalDate.now().toString()
+        val currentMonth = LocalDate.now().withDayOfMonth(1).toString()
+
+        val dailyNotified = prefs.getString("daily_goal_notified", "") == today
+        val monthlyNotified = prefs.getString("monthly_goal_notified", "") == currentMonth
+
+        viewModelScope.launch {
+            if (_todayVolume.value >= _dailyGoal.value && !dailyNotified) {
+                NotificationHelper.showGoalAchievementNotification(context, "daily")
+                prefs.edit().putString("daily_goal_notified", today).apply()
+                _showDailyCongrats.value = true
+            }
+
+            if (_monthlyVolume.value >= _monthlyGoal.value && !monthlyNotified) {
+                NotificationHelper.showGoalAchievementNotification(context, "monthly")
+                prefs.edit().putString("monthly_goal_notified", currentMonth).apply()
+                _showMonthlyCongrats.value = true
+            }
+        }
+    }
+
+    private val _showDailyCongrats = MutableStateFlow(false)
+    val showDailyCongrats: StateFlow<Boolean> = _showDailyCongrats
+
+    private val _showMonthlyCongrats = MutableStateFlow(false)
+    val showMonthlyCongrats: StateFlow<Boolean> = _showMonthlyCongrats
+
+    fun resetCongratsShown() {
+        _showDailyCongrats.value = false
+        _showMonthlyCongrats.value = false
     }
 
     init {
