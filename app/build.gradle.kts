@@ -73,6 +73,9 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
 
+    // sherpa-onnx (Whisper ASR)
+    implementation("com.github.k2-fsa:sherpa-onnx:v1.12.39")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

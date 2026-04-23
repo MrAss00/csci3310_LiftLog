@@ -28,6 +28,7 @@ data class SpotterViewState(
     val routine: Routine? = null,
     val currentWorkoutIndex: Int = 0,
     val currentSet: Int = 1,
+    val currentReps: Int = 0,
     val isTimerRunning: Boolean = false,
     val countdown: Int = 0,
     val startTime: Long = System.currentTimeMillis(),
@@ -106,6 +107,10 @@ class SpotterViewModel(
         }
     }
 
+    fun setCurrentReps(reps: Int) {
+        _state.update { it.copy(currentReps = reps) }
+    }
+
     fun completeSet() {
         val state = _state.value
         val workout = state.currentWorkout ?: return
@@ -161,7 +166,7 @@ class SpotterViewModel(
         val state = _state.value
         val workout = state.currentWorkout
 
-        _state.update { it.copy(isTimerRunning = false, countdown = 0) }
+        _state.update { it.copy(isTimerRunning = false, countdown = 0, currentReps = 0) }
 
         if (workout == null) return
 

@@ -1,5 +1,9 @@
 package edu.cuhk.csci3310.liftlog.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
@@ -48,6 +54,7 @@ import edu.cuhk.csci3310.liftlog.data.local.model.RoutineWorkout
 import edu.cuhk.csci3310.liftlog.titlecase
 import edu.cuhk.csci3310.liftlog.toTimerString
 import edu.cuhk.csci3310.liftlog.toVerboseDuration
+import edu.cuhk.csci3310.liftlog.ui.speech.SpeechManager
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.SpotterViewModel
 import org.json.JSONArray
 
@@ -56,10 +63,65 @@ fun SpotterScreen(
     navController: NavHostController,
     viewModel: SpotterViewModel = viewModel(),
 ) {
+    val context = LocalContext.current
+
     val state by viewModel.state.collectAsState()
+
     var showEndSessionDialog by remember { mutableStateOf(false) }
     var showInstructionsFor by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
+
+    // track whether RECORD_AUDIO has been granted
+    var hasAudioPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                    PackageManager.PERMISSION_GRANTED,
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> hasAudioPermission = granted }
+
+    // ask for the permission once when the screen first appears
+    LaunchedEffect(Unit) {
+        if (!hasAudioPermission) {
+            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    // single SpeechManager instance, recreated only if permission state changes
+    val speechManager = remember(hasAudioPermission) {
+        if (hasAudioPermission) {
+            SpeechManager(
+                context = context,
+                onNumberDetected = { reps ->
+                    if (reps > state.currentReps) {
+                        viewModel.setCurrentReps(reps)
+                    }
+                },
+                onCompleteSet = viewModel::completeSet,
+            )
+        } else {
+            null
+        }
+    }
+
+    DisposableEffect(speechManager) {
+        onDispose { speechManager?.release() }
+    }
+
+    // start or stop the microphone whenever the timer state changes
+    LaunchedEffect(state.isTimerRunning, state.isCompleted, hasAudioPermission, speechManager) {
+        if (speechManager == null || state.isCompleted) {
+            speechManager?.stopListening()
+            return@LaunchedEffect
+        }
+        if (state.isTimerRunning) {
+            speechManager.stopListening()
+        } else {
+            speechManager.startListening()
+        }
+    }
 
     // navigate back only when session is ended early
     LaunchedEffect(state.isSaved, state.isCompleted) {
@@ -107,6 +169,7 @@ fun SpotterScreen(
                         WorkoutView(
                             workout = workout,
                             currentSet = state.currentSet,
+                            currentReps = state.currentReps,
                             workoutNumber = state.currentWorkoutIndex + 1,
                             totalWorkouts = state.totalWorkouts,
                             onCompleteSet = viewModel::completeSet,
@@ -147,6 +210,7 @@ fun SpotterScreen(
 private fun WorkoutView(
     workout: RoutineWorkout,
     currentSet: Int,
+    currentReps: Int,
     workoutNumber: Int,
     totalWorkouts: Int,
     onCompleteSet: () -> Unit,
@@ -210,6 +274,22 @@ private fun WorkoutView(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
             )
+            Spacer(Modifier.height(16.dp))
+            AnimatedContent(
+                targetState = currentReps,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "rep_counter",
+            ) { reps ->
+                Text(
+                    text = if (reps == 0) "Listening for reps…" else "Rep $reps / ${workout.reps}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (reps >= workout.reps)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (reps >= workout.reps) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
         }
         Column(
             modifier = Modifier.fillMaxWidth(),
