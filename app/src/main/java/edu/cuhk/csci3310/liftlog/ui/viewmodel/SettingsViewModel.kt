@@ -1,35 +1,37 @@
 package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
 import android.app.Application
-import android.content.Context
-import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
+import edu.cuhk.csci3310.liftlog.data.repository.SettingsRepository
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val prefs = application.getSharedPreferences("liftlog_prefs", Context.MODE_PRIVATE)
+    private val repository = SettingsRepository(application)
 
-    private val _monthlyGoal = MutableStateFlow(prefs.getLong("monthly_goal_kg", 100L))
-    val monthlyGoal: StateFlow<Long> = _monthlyGoal.asStateFlow()
+    val speechRecognitionEnabled: StateFlow<Boolean> = repository.speechRecognitionEnabled
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true,
+        )
 
-    private val _dailyGoal = MutableStateFlow(prefs.getLong("daily_goal_kg", 20L))
-    val dailyGoal: StateFlow<Long> = _dailyGoal.asStateFlow()
-
-    fun updateMonthlyGoal(newGoal: Long) {
-        viewModelScope.launch {
-            _monthlyGoal.value = newGoal
-            prefs.edit { putLong("monthly_goal_kg", newGoal) }
-        }
+    fun setSpeechRecognitionEnabled(enabled: Boolean) {
+        viewModelScope.launch { repository.setSpeechRecognitionEnabled(enabled) }
     }
 
-    fun updateDailyGoal(newGoal: Long) {
-        _dailyGoal.value = newGoal
-        prefs.edit { putLong("daily_goal_kg", newGoal) }
-    }
+    val useRemoteExercises: StateFlow<Boolean> = repository.useRemoteExercises
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = false,
+        )
 
+    fun setUseRemoteExercises(enabled: Boolean) {
+        viewModelScope.launch { repository.setUseRemoteExercises(enabled) }
+    }
 }

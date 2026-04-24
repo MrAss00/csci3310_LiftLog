@@ -1,10 +1,11 @@
 package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import edu.cuhk.csci3310.liftlog.data.remote.RetrofitInstance
 import edu.cuhk.csci3310.liftlog.data.remote.model.Exercise
 import edu.cuhk.csci3310.liftlog.data.repository.ExerciseRepository
+import edu.cuhk.csci3310.liftlog.data.repository.SettingsRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,20 +28,33 @@ data class ExerciseSearchViewState(
 )
 
 @OptIn(FlowPreview::class)
-class ExerciseSearchViewModel : ViewModel() {
+class ExerciseSearchViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = ExerciseRepository(RetrofitInstance.api)
+    private val repository = ExerciseRepository(application)
+    private val settingsRepository = SettingsRepository(application)
 
     private val _state = MutableStateFlow(ExerciseSearchViewState())
     val state: StateFlow<ExerciseSearchViewState> = _state.asStateFlow()
+
+    // reflects the current data-source preference
+    private val _useRemote = MutableStateFlow(false)
 
     private var offset = 0
     private val size = 20
 
     init {
-        loadBodyParts()
-        loadExercises()
+        // observe the setting; reload everything when it changes
+        viewModelScope.launch {
+            settingsRepository.useRemoteExercises
+                .distinctUntilChanged()
+                .collect { useRemote ->
+                    _useRemote.value = useRemote
+                    loadBodyParts()
+                    loadExercises()
+                }
+        }
 
+        // re-fetch when query / body-part filter changes (debounced)
         viewModelScope.launch {
             state.map { it.query to it.bodyPart }
                 .debounce(300.milliseconds)
@@ -51,7 +65,7 @@ class ExerciseSearchViewModel : ViewModel() {
 
     private fun loadBodyParts() {
         viewModelScope.launch {
-            val result = repository.getBodyParts()
+            val result = repository.getBodyParts(useRemote = _useRemote.value)
             result.onSuccess { parts ->
                 _state.update { it.copy(bodyParts = parts) }
             }
@@ -81,7 +95,7 @@ class ExerciseSearchViewModel : ViewModel() {
                         hasMore = exercises.size >= size,
                     )
                 }
-                offset = exercises.size
+                offset = if (append) offset + exercises.size else exercises.size
             }.onFailure { error ->
                 _state.update {
                     it.copy(
@@ -95,17 +109,20 @@ class ExerciseSearchViewModel : ViewModel() {
 
     private suspend fun fetchExercises(offset: Int): Result<List<Exercise>> {
         val state = _state.value
+        val useRemote = _useRemote.value
         return if (state.bodyPart != null) {
             repository.listExercisesByBodyPart(
                 bodyPart = state.bodyPart,
                 offset = offset,
                 limit = size,
+                useRemote = useRemote,
             )
         } else {
             repository.searchExercises(
                 query = state.query,
                 offset = offset,
                 limit = size,
+                useRemote = useRemote,
             )
         }
     }

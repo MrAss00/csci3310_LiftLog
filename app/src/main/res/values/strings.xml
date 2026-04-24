@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">LiftLog</string>
+    <string name="widget_description">Shows today\'s volume progress and lets you start a workout session.</string>
 </resources>

@@ -1,22 +1,29 @@
 package edu.cuhk.csci3310.liftlog
 
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.RequiresApi
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
+import edu.cuhk.csci3310.liftlog.service.RestTimerService
 import edu.cuhk.csci3310.liftlog.ui.navigation.Screen
 import edu.cuhk.csci3310.liftlog.ui.screens.LogScreen
 import edu.cuhk.csci3310.liftlog.ui.screens.RoutineEditScreen
@@ -27,9 +34,14 @@ import edu.cuhk.csci3310.liftlog.ui.screens.StatsScreen
 import edu.cuhk.csci3310.liftlog.ui.theme.LiftLogTheme
 
 class MainActivity : ComponentActivity() {
-    @RequiresApi(Build.VERSION_CODES.O)
+
+    private val requestNotificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        createRestTimerNotificationChannel()
+        requestNotificationPermissionIfNeeded()
         enableEdgeToEdge()
         setContent {
             LiftLogTheme {
@@ -37,9 +49,31 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    /** Creates the notification channel used by [RestTimerService]. */
+    private fun createRestTimerNotificationChannel() {
+        val channel = NotificationChannel(
+            RestTimerService.NOTIFICATION_CHANNEL_ID,
+            "Rest Timer",
+            NotificationManager.IMPORTANCE_LOW,  // silent; no sound/vibration
+        ).apply { description = "Shows the rest period countdown during a workout session." }
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+    }
+
+    /** On Android 13+, POST_NOTIFICATIONS requires a runtime grant. */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun LiftLogApp() {
     val navController = rememberNavController()
@@ -85,6 +119,9 @@ fun LiftLogApp() {
             "spotter/{routineId}",
             arguments = listOf(
                 navArgument("routineId") { type = NavType.LongType },
+            ),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "liftlog://spotter/{routineId}" },
             ),
             enterTransition = {
                 slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Up)

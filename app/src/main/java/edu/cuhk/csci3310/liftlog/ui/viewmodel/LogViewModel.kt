@@ -1,8 +1,6 @@
 package edu.cuhk.csci3310.liftlog.ui.viewmodel
 
 import android.app.Application
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import edu.cuhk.csci3310.liftlog.data.local.LiftLogDatabase
@@ -24,16 +22,15 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 
-@RequiresApi(Build.VERSION_CODES.O)
 data class LogViewState(
     val selectedDate: LocalDate = LocalDate.now(),
     val currentMonth: YearMonth = YearMonth.now(),
     val dottedDays: Set<Int> = emptySet(),
     val sessions: List<Session> = emptyList(),
+    /** Routines used only for the "start session" picker dialog. */
     val routines: List<Routine> = emptyList(),
 )
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalCoroutinesApi::class)
 class LogViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -48,7 +45,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
         sessionRepository = SessionRepository(database.sessionDao())
         routineRepository = RoutineRepository(database.routineDao())
 
-        // fetch sessions when selected date changes
+        // fetch sessions (with snapshotted exercises) when selected date changes
         viewModelScope.launch {
             _state.map { it.selectedDate }.distinctUntilChanged().flatMapLatest { date ->
                 val startOfDay =
@@ -81,7 +78,7 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // fetch all routines for the picker
+        // fetch all routines for the start-session picker dialog
         viewModelScope.launch {
             routineRepository.getAllRoutines().collect { routines ->
                 _state.update { it.copy(routines = routines) }
@@ -111,6 +108,4 @@ class LogViewModel(application: Application) : AndroidViewModel(application) {
             sessionRepository.deleteSession(session)
         }
     }
-
-    fun getRoutine(id: Long): Routine? = _state.value.routines.find { it.routine.id == id }
 }

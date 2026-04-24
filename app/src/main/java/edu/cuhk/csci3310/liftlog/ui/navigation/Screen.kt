@@ -30,10 +30,9 @@ sealed class Screen(
         icon = Icons.Filled.FitnessCenter,
     )
 
-    object Settings : Screen(
+    data object Settings : Screen(
         route = "settings",
         label = "Settings",
-        icon = Icons.Default.Settings
-
+        icon = Icons.Filled.Settings,
     )
 }

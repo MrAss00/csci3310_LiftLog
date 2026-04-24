@@ -1,8 +1,6 @@
 package edu.cuhk.csci3310.liftlog.ui.screens
 
 import android.annotation.SuppressLint
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -23,14 +21,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -60,10 +57,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import edu.cuhk.csci3310.liftlog.data.local.model.Routine
 import edu.cuhk.csci3310.liftlog.data.local.model.Session
 import edu.cuhk.csci3310.liftlog.titlecase
+import edu.cuhk.csci3310.liftlog.toCompactDuration
 import edu.cuhk.csci3310.liftlog.ui.components.LiftLogTabScaffold
+import edu.cuhk.csci3310.liftlog.ui.components.RoutinePickerDialog
 import edu.cuhk.csci3310.liftlog.ui.viewmodel.LogViewModel
 import java.time.DayOfWeek
 import java.time.Instant
@@ -73,10 +71,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun LogScreen(
     navController: NavHostController,
@@ -132,9 +127,6 @@ fun LogScreen(
                         items(state.sessions, key = { it.id }) { session ->
                             SessionCard(
                                 session = session,
-                                routine = session.routineId?.let {
-                                    viewModel.getRoutine(it)
-                                },
                                 onDelete = { sessionToDelete = session },
                                 modifier = Modifier.padding(horizontal = 16.dp),
                             )
@@ -150,7 +142,7 @@ fun LogScreen(
                         .align(Alignment.BottomEnd)
                         .padding(16.dp),
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Start Session")
+                    Icon(Icons.Filled.PlayArrow, contentDescription = "Start Session")
                 }
             }
         }
@@ -191,7 +183,6 @@ fun LogScreen(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun CalendarView(
     dots: Set<Int>,
@@ -331,11 +322,9 @@ private fun CalendarDay(
 }
 
 @SuppressLint("DefaultLocale")
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun SessionCard(
     session: Session,
-    routine: Routine?,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -345,13 +334,6 @@ private fun SessionCard(
         Instant.ofEpochMilli(session.startTime)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("h:mm a"))
-    }
-
-    val formattedDuration = remember(session.duration) {
-        val duration = session.duration.toDuration(DurationUnit.MILLISECONDS)
-        duration.toComponents { minues, seconds, _ ->
-            String.format("%02dm%02ds", minues, seconds)
-        }
     }
 
     Card(
@@ -378,7 +360,7 @@ private fun SessionCard(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "$formattedStartTime • $formattedDuration",
+                        text = "$formattedStartTime • ${session.duration.toCompactDuration()}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -403,22 +385,35 @@ private fun SessionCard(
             ) {
                 HorizontalDivider(thickness = Dp.Hairline)
                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                    if (routine != null && routine.workouts.isNotEmpty()) {
-                        routine.workouts
+                    if (session.exercises.isNotEmpty()) {
+                        session.exercises
                             .sortedBy { it.index }
-                            .forEach { workout ->
+                            .forEach { exercise ->
                                 ListItem(
                                     headlineContent = {
                                         Text(
-                                            text = workout.exerciseName.titlecase(),
+                                            text = exercise.exerciseName.titlecase(),
                                             style = MaterialTheme.typography.bodyMedium,
                                         )
                                     },
                                     supportingContent = {
                                         Text(
-                                            text = "${workout.sets} sets × ${workout.reps} reps @ ${workout.weight}kg",
+                                            text = "${exercise.sets} sets × ${exercise.reps} reps @ ${exercise.weight}kg",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    },
+                                    trailingContent = {
+                                        val completed = exercise.completedSets
+                                        val planned = exercise.sets
+                                        val allDone = completed >= planned
+                                        Text(
+                                            text = "$completed / $planned sets",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (allDone)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     },
                                     colors = ListItemDefaults.colors(
@@ -431,7 +426,7 @@ private fun SessionCard(
                         ListItem(
                             headlineContent = {
                                 Text(
-                                    text = "routine no longer exists",
+                                    text = "no exercise data recorded",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -457,54 +452,4 @@ private fun SessionCard(
             }
         }
     }
-}
-
-@Composable
-private fun RoutinePickerDialog(
-    routines: List<Routine>,
-    onRoutineSelected: (Routine) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select Routine") },
-        text = {
-            LazyColumn {
-                items(routines, key = { it.routine.id }) { routine ->
-                    ListItem(
-                        headlineContent = {
-                            Text(
-                                text = routine.routine.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        },
-                        supportingContent = {
-                            Text(
-                                text = "${routine.workouts.size} workouts",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        },
-//                            leadingContent = {
-//                                Icon(
-//                                    imageVector = Icons.Filled.FitnessCenter,
-//                                    contentDescription = null,
-//                                    tint = MaterialTheme.colorScheme.primary,
-//                                )
-//                            },
-                        modifier = Modifier
-                            .padding(vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onRoutineSelected(routine) },
-                    )
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
 }

@@ -12,7 +12,7 @@ import edu.cuhk.csci3310.liftlog.ui.navigation.Screen
 
 @Composable
 fun LiftLogBottomBar(navController: NavHostController) {
-    val tabs = listOf(Screen.Stats, Screen.Log, Screen.Routines)
+    val tabs = listOf(Screen.Stats, Screen.Log, Screen.Routines, Screen.Settings)
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -22,7 +22,7 @@ fun LiftLogBottomBar(navController: NavHostController) {
             NavigationBarItem(
                 icon = { Icon(imageVector = screen.icon, contentDescription = screen.label) },
                 label = { Text(text = screen.label) },
-                selected = currentRoute == screen.route,
+                selected = currentRoute == screen.route || currentRoute?.startsWith(screen.route + "?") == true,
                 onClick = {
                     navController.navigate(screen.route) {
                         // pop up to the start destination to avoid building up a large back stack
